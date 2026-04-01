@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Finance OMS Study Sheet</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0d14;
+    --surface: #111520;
+    --border: #1e2535;
+    --accent: #00e5c3;
+    --accent2: #ff6b35;
+    --accent3: #7b61ff;
+    --accent4: #ffd166;
+    --text: #e8eaf2;
+    --muted: #6b7494;
+    --card: #141925;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    padding: 40px 32px;
+    min-height: 100vh;
+  }
+
+  /* grid noise overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,229,195,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,229,195,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .wrap { position: relative; z-index: 1; max-width: 1100px; margin: 0 auto; }
+
+  header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 28px;
+    margin-bottom: 40px;
+    gap: 20px;
+  }
+
+  .title-block h1 {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 42px;
+    letter-spacing: -1px;
+    line-height: 1;
+    color: var(--text);
+  }
+
+  .title-block h1 span {
+    color: var(--accent);
+  }
+
+  .title-block p {
+    margin-top: 8px;
+    color: var(--muted);
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .badge {
+    background: var(--accent);
+    color: #000;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 11px;
+    padding: 6px 14px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    margin-top: 4px;
+  }
+
+  /* DEFINITION BOX */
+  .def-box {
+    background: linear-gradient(135deg, #0e1420 0%, #141d2e 100%);
+    border: 1px solid var(--accent);
+    border-left: 4px solid var(--accent);
+    padding: 20px 24px;
+    margin-bottom: 40px;
+  }
+
+  .def-box .label {
+    color: var(--accent);
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .def-box p {
+    font-size: 13.5px;
+    color: var(--text);
+    line-height: 1.8;
+  }
+
+  /* SECTION HEADERS */
+  .section-label {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* LIFECYCLE FLOW */
+  .lifecycle {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    margin-bottom: 40px;
+    overflow-x: auto;
+  }
+
+  .lc-step {
+    flex: 1;
+    min-width: 140px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    padding: 18px 14px;
+    position: relative;
+  }
+
+  .lc-step:not(:last-child)::after {
+    content: '→';
+    position: absolute;
+    right: -16px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--accent);
+    font-size: 18px;
+    z-index: 2;
+    background: var(--bg);
+    width: 30px;
+    text-align: center;
+  }
+
+  .lc-step .num {
+    font-size: 10px;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+
+  .lc-step .name {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    color: var(--text);
+    margin-bottom: 8px;
+  }
+
+  .lc-step .desc {
+    font-size: 11px;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+
+  .lc-step.pre { border-top: 3px solid var(--accent3); }
+  .lc-step.exec { border-top: 3px solid var(--accent); }
+  .lc-step.post { border-top: 3px solid var(--accent2); }
+
+  /* CARD GRID */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 40px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 40px; }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    padding: 20px;
+  }
+
+  .card .card-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .card .card-title .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .card ul { list-style: none; }
+  .card ul li {
+    padding: 5px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--muted);
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .card ul li:last-child { border-bottom: none; }
+  .card ul li::before { content: '›'; color: var(--accent); flex-shrink: 0; }
+
+  /* ORDER TYPES TABLE */
+  .order-table { width: 100%; border-collapse: collapse; margin-bottom: 40px; }
+  .order-table th {
+    background: var(--surface);
+    color: var(--accent);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 10px 14px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+  .order-table td {
+    padding: 10px 14px;
+    font-size: 12px;
+    border-bottom: 1px solid var(--border);
+    color: var(--muted);
+    vertical-align: top;
+  }
+  .order-table td:first-child {
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    font-weight: 600;
+    font-size: 12px;
+  }
+  .order-table tr:hover td { background: var(--surface); }
+
+  .tag {
+    display: inline-block;
+    font-size: 10px;
+    padding: 2px 8px;
+    letter-spacing: 0.06em;
+  }
+  .tag.buy { background: rgba(0,229,195,0.12); color: var(--accent); }
+  .tag.sell { background: rgba(255,107,53,0.12); color: var(--accent2); }
+  .tag.both { background: rgba(123,97,255,0.12); color: var(--accent3); }
+
+  /* SYSTEM MAP */
+  .sysmap {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr auto 1fr;
+    gap: 0;
+    align-items: center;
+    margin-bottom: 40px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    padding: 24px;
+  }
+
+  .sys-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 16px;
+    text-align: center;
+  }
+
+  .sys-box .sys-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 12px;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+  .sys-box .sys-abbr {
+    font-size: 22px;
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    margin-bottom: 4px;
+  }
+  .sys-box .sys-sub { font-size: 10px; color: var(--muted); }
+
+  .pms .sys-abbr { color: var(--accent3); }
+  .oms-center .sys-abbr { color: var(--accent); }
+  .ems .sys-abbr { color: var(--accent2); }
+
+  .sys-arrow {
+    font-size: 20px;
+    color: var(--border);
+    padding: 0 16px;
+    text-align: center;
+  }
+
+  /* COMPLIANCE */
+  .compliance-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 40px;
+  }
+
+  .comp-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    padding: 20px;
+  }
+
+  .comp-card .phase-tag {
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    margin-bottom: 12px;
+    display: inline-block;
+  }
+
+  .pre-tag { background: rgba(123,97,255,0.15); color: var(--accent3); }
+  .post-tag { background: rgba(255,107,53,0.15); color: var(--accent2); }
+
+  .comp-card ul { list-style: none; }
+  .comp-card ul li {
+    padding: 5px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--muted);
+    display: flex;
+    gap: 8px;
+  }
+  .comp-card ul li:last-child { border-bottom: none; }
+  .comp-card ul li::before { content: '✓'; color: var(--accent); }
+
+  /* KEY METRICS */
+  .metrics-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 40px;
+  }
+
+  .metric-box {
+    background: var(--card);
+    border: 1px solid var(--border);
+    padding: 16px;
+    text-align: center;
+  }
+
+  .metric-box .m-val {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 28px;
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+
+  .metric-box .m-label {
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  /* FOOTER */
+  footer {
+    border-top: 1px solid var(--border);
+    padding-top: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  footer .credit {
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  footer .stamp {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 11px;
+    color: var(--accent);
+    letter-spacing: 0.15em;
+  }
+
+  @media (max-width: 768px) {
+    .grid-2, .grid-3, .compliance-row, .metrics-row { grid-template-columns: 1fr; }
+    .lifecycle { flex-direction: column; }
+    .lc-step:not(:last-child)::after { content: '↓'; right: auto; left: 50%; transform: translateX(-50%); top: auto; bottom: -18px; }
+    .sysmap { grid-template-columns: 1fr; }
+    .sys-arrow { transform: rotate(90deg); }
+    h1 { font-size: 28px !important; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="title-block">
+      <h1>Finance <span>OMS</span></h1>
+      <p>Order Management System — Visual Study Sheet</p>
+    </div>
+    <div class="badge">Study Guide</div>
+  </header>
+
+  <!-- DEFINITION -->
+  <div class="section-label">Core Definition</div>
+  <div class="def-box">
+    <div class="label">What is an OMS?</div>
+    <p>
+      A <strong>financial Order Management System (OMS)</strong> is the central software platform that manages the full lifecycle of a trade order — from portfolio decision through pre-trade compliance, execution routing, allocation, confirmation, and settlement. It acts as the <em>spider in the web</em> connecting all intraday workflows for buy-side and sell-side firms.
+    </p>
+  </div>
+
+  <!-- LIFECYCLE -->
+  <div class="section-label">Trade Order Lifecycle</div>
+  <div class="lifecycle">
+    <div class="lc-step pre">
+      <div class="num">01</div>
+      <div class="name">Order Generation</div>
+      <div class="desc">Portfolio manager decision; enters OMS from PMS or manual entry</div>
+    </div>
+    <div class="lc-step pre">
+      <div class="num">02</div>
+      <div class="name">Pre-Trade Compliance</div>
+      <div class="desc">Automated rule checks, risk limits, regulatory constraints</div>
+    </div>
+    <div class="lc-step exec">
+      <div class="num">03</div>
+      <div class="name">Routing</div>
+      <div class="desc">Routes to broker, EMS, dark pool, or exchange via FIX protocol</div>
+    </div>
+    <div class="lc-step exec">
+      <div class="num">04</div>
+      <div class="name">Execution</div>
+      <div class="desc">Fill management, partial fills, order status tracking in real time</div>
+    </div>
+    <div class="lc-step post">
+      <div class="num">05</div>
+      <div class="name">Allocation</div>
+      <div class="desc">Distributes fills across portfolios/accounts per predefined rules</div>
+    </div>
+    <div class="lc-step post">
+      <div class="num">06</div>
+      <div class="name">Confirmation</div>
+      <div class="desc">Trade affirmation, matching with counterparty via STP</div>
+    </div>
+    <div class="lc-step post">
+      <div class="num">07</div>
+      <div class="name">Settlement</div>
+      <div class="desc">Facilitates T+1/T+2 settlement, reconciliation, post-trade compliance</div>
+    </div>
+  </div>
+
+  <!-- SYSTEM MAP -->
+  <div class="section-label">System Ecosystem</div>
+  <div class="sysmap">
+    <div class="sys-box pms">
+      <div class="sys-abbr">PMS</div>
+      <div class="sys-title">Portfolio Mgmt System</div>
+      <div class="sys-sub">Asset allocation, portfolio decisions, position management</div>
+    </div>
+    <div class="sys-arrow">⟷</div>
+    <div class="sys-box oms-center">
+      <div class="sys-abbr">OMS</div>
+      <div class="sys-title">Order Mgmt System</div>
+      <div class="sys-sub">Central hub — compliance, routing, allocation, STP</div>
+    </div>
+    <div class="sys-arrow">⟷</div>
+    <div class="sys-box ems">
+      <div class="sys-abbr">EMS</div>
+      <div class="sys-title">Execution Mgmt System</div>
+      <div class="sys-sub">Algo trading, real-time execution, venue access, TCA</div>
+    </div>
+  </div>
+
+  <!-- ORDER TYPES + ASSET CLASSES -->
+  <div class="section-label">Order Types</div>
+  <table class="order-table">
+    <thead>
+      <tr>
+        <th>Order Type</th>
+        <th>Description</th>
+        <th>Direction</th>
+        <th>Use Case</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Market Order</td>
+        <td>Execute immediately at best available price</td>
+        <td><span class="tag both">Both</span></td>
+        <td>Liquidity urgency, index rebalance</td>
+      </tr>
+      <tr>
+        <td>Limit Order</td>
+        <td>Execute only at specified price or better</td>
+        <td><span class="tag both">Both</span></td>
+        <td>Price-sensitive trades, block orders</td>
+      </tr>
+      <tr>
+        <td>Stop-Loss</td>
+        <td>Triggered when price falls below threshold</td>
+        <td><span class="tag sell">Sell</span></td>
+        <td>Risk management, drawdown protection</td>
+      </tr>
+      <tr>
+        <td>TWAP / VWAP</td>
+        <td>Algo slices order over time/volume profile</td>
+        <td><span class="tag both">Both</span></td>
+        <td>Minimize market impact on large orders</td>
+      </tr>
+      <tr>
+        <td>Buy to Cover</td>
+        <td>Close a short position</td>
+        <td><span class="tag buy">Buy</span></td>
+        <td>Equity swaps, short-selling workflows</td>
+      </tr>
+      <tr>
+        <td>Sell Short</td>
+        <td>Sell securities not currently owned</td>
+        <td><span class="tag sell">Sell</span></td>
+        <td>Hedge funds, equity swap strategies</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- CORE FEATURES + ASSET CLASSES -->
+  <div class="grid-3">
+    <div class="card">
+      <div class="card-title"><span class="dot" style="background:var(--accent)"></span>Core Features</div>
+      <ul>
+        <li>Real-time order tracking and blotter</li>
+        <li>Pre and post-trade compliance</li>
+        <li>Multi-account trade allocation</li>
+        <li>FIX protocol broker connectivity</li>
+        <li>Straight-through processing (STP)</li>
+        <li>P&L and exposure analytics</li>
+        <li>Audit trail and reporting</li>
+      </ul>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="dot" style="background:var(--accent3)"></span>Asset Classes</div>
+      <ul>
+        <li>Equities and ETFs</li>
+        <li>Fixed income (bonds, credit)</li>
+        <li>Derivatives and options</li>
+        <li>FX and currency forwards</li>
+        <li>Equity swaps and total return swaps</li>
+        <li>Mutual funds and fund of funds</li>
+        <li>Digital assets (emerging)</li>
+      </ul>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="dot" style="background:var(--accent2)"></span>Users / Clients</div>
+      <ul>
+        <li>Asset managers (buy-side)</li>
+        <li>Hedge funds</li>
+        <li>Banks and broker-dealers (sell-side)</li>
+        <li>Pension funds</li>
+        <li>Insurance companies</li>
+        <li>Fund of funds managers</li>
+        <li>Family offices</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- COMPLIANCE -->
+  <div class="section-label">Compliance Framework</div>
+  <div class="compliance-row">
+    <div class="comp-card">
+      <span class="phase-tag pre-tag">Pre-Trade</span>
+      <ul>
+        <li>Position limit checks (concentration rules)</li>
+        <li>Regulatory investment restrictions</li>
+        <li>Risk exposure thresholds (VaR, DV01)</li>
+        <li>Client mandate compliance</li>
+        <li>Short-selling restrictions</li>
+        <li>Sanctions and counterparty screening</li>
+      </ul>
+    </div>
+    <div class="comp-card">
+      <span class="phase-tag post-tag">Post-Trade</span>
+      <ul>
+        <li>UCITS and ACT regulatory checks</li>
+        <li>MiFID II best execution reporting</li>
+        <li>Trade affirmation and confirmation</li>
+        <li>Allocation fairness audits</li>
+        <li>Reconciliation with custodians</li>
+        <li>Transaction cost analysis (TCA)</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- FIXED INCOME SPECIFICS -->
+  <div class="section-label">Asset-Class Nuances</div>
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title"><span class="dot" style="background:var(--accent4)"></span>Fixed Income OMS</div>
+      <ul>
+        <li>Liquidity affects which bond is purchased</li>
+        <li>OMS acts as optimizer for bond characteristics</li>
+        <li>RFQ (Request for Quote) workflow support</li>
+        <li>Duration, yield, and spread analytics required</li>
+        <li>Settlement cycle differences (T+2 / T+3)</li>
+      </ul>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="dot" style="background:var(--accent3)"></span>Equity Swap OMS</div>
+      <ul>
+        <li>Financing leg and return leg reset calculations</li>
+        <li>Long vs short directionality tracking</li>
+        <li>Buy vs buy-to-cover distinction required</li>
+        <li>Sell vs sell-short flagging enforced</li>
+        <li>Critical capability for hedge fund workflows</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- KEY METRICS -->
+  <div class="section-label">Why OMS Matters</div>
+  <div class="metrics-row">
+    <div class="metric-box">
+      <div class="m-val" style="color:var(--accent)">STP</div>
+      <div class="m-label">Straight-Through Processing eliminates manual errors</div>
+    </div>
+    <div class="metric-box">
+      <div class="m-val" style="color:var(--accent3)">FIX</div>
+      <div class="m-label">Financial Information eXchange powers most transactions</div>
+    </div>
+    <div class="metric-box">
+      <div class="m-val" style="color:var(--accent2)">T+1</div>
+      <div class="m-label">Settlement standard driving automation needs</div>
+    </div>
+    <div class="metric-box">
+      <div class="m-val" style="color:var(--accent4)">360°</div>
+      <div class="m-label">Real-time visibility across all positions, P&L, exposure</div>
+    </div>
+  </div>
+
+  <footer>
+    <div class="credit">Finance OMS Visual Study Sheet · Claude Study Aid</div>
+    <div class="stamp">OMS · EMS · PMS · FIX · STP</div>
+  </footer>
+
+</div>
+</body>
+</html>

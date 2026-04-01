@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Interview Prep Study Sheets</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  :root {
+    --bg: #08111f;
+    --bg2: #101b31;
+    --card: rgba(10, 18, 34, 0.72);
+    --line: rgba(255, 255, 255, 0.1);
+    --text: #edf3ff;
+    --muted: #9fb0d1;
+    --accent: #68e1fd;
+    --accent2: #ffd166;
+    --accent3: #7ef0c5;
+    --shadow: 0 24px 70px rgba(0, 0, 0, 0.35);
+  }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    font-family: "Space Grotesk", sans-serif;
+    color: var(--text);
+    background:
+      radial-gradient(circle at top left, rgba(104, 225, 253, 0.2), transparent 32%),
+      radial-gradient(circle at top right, rgba(255, 209, 102, 0.18), transparent 28%),
+      linear-gradient(160deg, var(--bg), var(--bg2));
+  }
+
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background-image:
+      linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+    background-size: 34px 34px;
+    mask-image: radial-gradient(circle at center, black, transparent 85%);
+  }
+
+  main {
+    width: min(1120px, calc(100% - 32px));
+    margin: 0 auto;
+    padding: 56px 0 72px;
+  }
+
+  .hero {
+    padding: 18px 0 34px;
+  }
+
+  .eyebrow {
+    margin: 0 0 14px;
+    color: var(--accent3);
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 12px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+  }
+
+  h1 {
+    margin: 0;
+    max-width: 800px;
+    font-size: clamp(2.6rem, 8vw, 5.2rem);
+    line-height: 0.95;
+    letter-spacing: -0.05em;
+  }
+
+  .subtitle {
+    max-width: 760px;
+    margin: 20px 0 0;
+    font-size: clamp(1rem, 2.8vw, 1.18rem);
+    line-height: 1.7;
+    color: var(--muted);
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 18px;
+    margin-top: 28px;
+  }
+
+  .card {
+    display: block;
+    padding: 22px;
+    border: 1px solid var(--line);
+    border-radius: 24px;
+    color: inherit;
+    text-decoration: none;
+    background: var(--card);
+    backdrop-filter: blur(16px);
+    box-shadow: var(--shadow);
+    transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
+  }
+
+  .card:hover {
+    transform: translateY(-4px);
+    border-color: rgba(255, 255, 255, 0.24);
+    background: rgba(14, 24, 44, 0.92);
+  }
+
+  .kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--accent);
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 999px;
+    background: currentColor;
+    box-shadow: 0 0 20px currentColor;
+  }
+
+  .card h2 {
+    margin: 18px 0 12px;
+    font-size: 1.45rem;
+    line-height: 1.15;
+  }
+
+  .card p {
+    margin: 0;
+    color: var(--muted);
+    line-height: 1.65;
+  }
+
+  .card .cta {
+    margin-top: 18px;
+    color: var(--accent2);
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.95rem;
+  }
+
+  footer {
+    margin-top: 30px;
+    color: var(--muted);
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.9rem;
+  }
+</style>
+</head>
+<body>
+  <main>
+    <section class="hero">
+      <p class="eyebrow">Mobile-ready study deck</p>
+      <h1>Interview prep pages, published in one place.</h1>
+      <p class="subtitle">Open any sheet below from your phone after deployment. Each page stays as its own standalone HTML file, and this landing page gives you a cleaner home screen for quick review.</p>
+    </section>
+
+    <section class="grid">
+      <a class="card" href="./fanduel-risk-dotnet-design.html">
+        <span class="kicker"><span class="dot"></span>FanDuel</span>
+        <h2>Risk and .NET Core Design</h2>
+        <p>System design notes focused on risk flows, domain boundaries, and practical .NET architecture decisions.</p>
+        <p class="cta">Open sheet</p>
+      </a>
+
+      <a class="card" href="./fanduel-system-design-study.html">
+        <span class="kicker"><span class="dot"></span>FanDuel</span>
+        <h2>System Design Study Guide</h2>
+        <p>Broader interview review content for scalable systems, architecture tradeoffs, and discussion prep.</p>
+        <p class="cta">Open sheet</p>
+      </a>
+
+      <a class="card" href="./finance-oms-study-sheet.html">
+        <span class="kicker"><span class="dot"></span>Finance</span>
+        <h2>OMS Study Sheet</h2>
+        <p>Trading and order-management concepts gathered into a compact page for quick mobile review.</p>
+        <p class="cta">Open sheet</p>
+      </a>
+
+      <a class="card" href="./system-design-study-sheet.html">
+        <span class="kicker"><span class="dot"></span>Core Concepts</span>
+        <h2>System Design Concepts</h2>
+        <p>A fast refresher on the major building blocks and patterns that come up in interviews.</p>
+        <p class="cta">Open sheet</p>
+      </a>
+    </section>
+
+    <footer>Designed as a simple static site so it can deploy cleanly to GitHub Pages.</footer>
+  </main>
+</body>
+</html>

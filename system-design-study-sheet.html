@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>8 System Design Concepts</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;900&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0c0f1a;
+  --surface: #131726;
+  --card: #181d2e;
+  --border: #232a40;
+  --text: #f0f2ff;
+  --muted: #5a647a;
+  --dim: #8892aa;
+
+  --c1: #ff6b6b;   /* caching - coral */
+  --c2: #ff9f43;   /* async - amber */
+  --c3: #ee5a24;   /* LSM - orange-red */
+  --c4: #ffd32a;   /* redundancy - yellow */
+  --c5: #0abde3;   /* load balancing - sky */
+  --c6: #48dbfb;   /* replication - cyan */
+  --c7: #1dd1a1;   /* indexes - teal */
+  --c8: #c56ef3;   /* sharding - violet */
+  --c9: #f368e0;   /* logging - pink */
+  --c10: #54a0ff;  /* block storage - blue */
+  --c11: #00d2d3;  /* CDN - aqua */
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Outfit', sans-serif;
+  padding: 48px 40px 60px;
+  min-height: 100vh;
+  position: relative;
+}
+
+/* subtle dot grid */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: radial-gradient(circle, #ffffff08 1px, transparent 1px);
+  background-size: 28px 28px;
+  pointer-events: none;
+}
+
+.wrap { max-width: 1160px; margin: 0 auto; position: relative; }
+
+/* ── HEADER ── */
+header {
+  text-align: center;
+  margin-bottom: 56px;
+  animation: fadeUp 0.6s ease both;
+}
+
+header .eyebrow {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 14px;
+}
+
+header h1 {
+  font-weight: 900;
+  font-size: clamp(32px, 5vw, 56px);
+  line-height: 1.05;
+  letter-spacing: -1.5px;
+  color: var(--text);
+}
+
+header h1 em {
+  font-style: normal;
+  background: linear-gradient(135deg, #54a0ff, #c56ef3, #f368e0);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+header p {
+  margin-top: 14px;
+  color: var(--dim);
+  font-size: 15px;
+  font-weight: 300;
+  letter-spacing: 0.02em;
+}
+
+/* ── GRID ── */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 18px;
+}
+
+/* ── CONCEPT CARD ── */
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 22px 20px 20px;
+  position: relative;
+  overflow: hidden;
+  animation: fadeUp 0.5s ease both;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 48px rgba(0,0,0,0.45);
+}
+
+/* colored top bar */
+.card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: var(--accent);
+  border-radius: 16px 16px 0 0;
+}
+
+/* glow bg */
+.card::after {
+  content: '';
+  position: absolute;
+  top: -30px; right: -30px;
+  width: 120px; height: 120px;
+  border-radius: 50%;
+  background: var(--accent);
+  opacity: 0.06;
+  filter: blur(30px);
+  pointer-events: none;
+}
+
+.card-num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--accent);
+  letter-spacing: 0.14em;
+  margin-bottom: 10px;
+  opacity: 0.8;
+}
+
+.card-title {
+  font-weight: 700;
+  font-size: 14.5px;
+  line-height: 1.3;
+  color: var(--text);
+  margin-bottom: 14px;
+  min-height: 38px;
+}
+
+/* ── DIAGRAM AREA ── */
+.diagram {
+  background: var(--surface);
+  border-radius: 10px;
+  padding: 16px 14px;
+  margin-bottom: 14px;
+  min-height: 130px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  border: 1px solid var(--border);
+}
+
+/* ── NODES ── */
+.node {
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-align: center;
+  line-height: 1.2;
+}
+
+.arrow {
+  color: var(--muted);
+  font-size: 14px;
+  margin: 0 4px;
+  flex-shrink: 0;
+}
+
+.row { display: flex; align-items: center; justify-content: center; gap: 4px; flex-wrap: wrap; }
+.col { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.gap { gap: 8px; }
+
+/* ── BULLETS ── */
+.bullets { list-style: none; }
+.bullets li {
+  font-size: 12px;
+  color: var(--dim);
+  padding: 4px 0;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  gap: 7px;
+  line-height: 1.4;
+}
+.bullets li:last-child { border-bottom: none; }
+.bullets li::before {
+  content: '›';
+  color: var(--accent);
+  flex-shrink: 0;
+  font-weight: 700;
+}
+
+/* ── ANIMATION DELAYS ── */
+.card:nth-child(1) { animation-delay: 0.05s; }
+.card:nth-child(2) { animation-delay: 0.10s; }
+.card:nth-child(3) { animation-delay: 0.15s; }
+.card:nth-child(4) { animation-delay: 0.20s; }
+.card:nth-child(5) { animation-delay: 0.25s; }
+.card:nth-child(6) { animation-delay: 0.30s; }
+.card:nth-child(7) { animation-delay: 0.35s; }
+.card:nth-child(8) { animation-delay: 0.40s; }
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── FOOTER ── */
+footer {
+  margin-top: 48px;
+  text-align: center;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 0.1em;
+  animation: fadeUp 0.6s 0.5s ease both;
+}
+
+/* SVG diagram helpers */
+svg text { font-family: 'JetBrains Mono', monospace; }
+
+@media (max-width: 900px) {
+  .grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 520px) {
+  .grid { grid-template-columns: 1fr; }
+  body { padding: 28px 18px 40px; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="eyebrow">ByteByteGo · System Design Fundamentals</div>
+  <h1>8 Concepts You <em>Must</em> Know</h1>
+  <p>Visual reference for distributed systems design interviews & production architecture</p>
+</header>
+
+<div class="grid">
+
+  <!-- ① CACHING -->
+  <div class="card" style="--accent: var(--c1)">
+    <div class="card-num">01 / 08</div>
+    <div class="card-title">Use Caching for Faster Reads</div>
+    <div class="diagram">
+      <svg width="210" height="110" viewBox="0 0 210 110">
+        <!-- Client -->
+        <rect x="4" y="40" width="46" height="30" rx="6" fill="#ff6b6b22" stroke="#ff6b6b" stroke-width="1.2"/>
+        <text x="27" y="59" fill="#ff6b6b" font-size="9" text-anchor="middle">Client</text>
+        <!-- arrow to cache -->
+        <line x1="50" y1="55" x2="74" y2="35" stroke="#5a647a" stroke-width="1" marker-end="url(#arr)"/>
+        <!-- Cache box -->
+        <rect x="74" y="20" width="56" height="28" rx="6" fill="#ff6b6b33" stroke="#ff6b6b" stroke-width="1.5"/>
+        <text x="102" y="35" fill="#ff6b6b" font-size="9" text-anchor="middle" font-weight="600">Cache</text>
+        <!-- HIT label -->
+        <text x="92" y="14" fill="#ff6b6b" font-size="8" text-anchor="middle" opacity="0.7">① HIT</text>
+        <!-- arrow back -->
+        <line x1="74" y1="32" x2="52" y2="52" stroke="#ff6b6b" stroke-width="1.2" stroke-dasharray="3,2" marker-end="url(#arrR)"/>
+        <!-- MISS -->
+        <text x="122" y="14" fill="#5a647a" font-size="8" text-anchor="middle" opacity="0.7">② MISS</text>
+        <line x1="130" y1="34" x2="150" y2="50" stroke="#5a647a" stroke-width="1" marker-end="url(#arr)"/>
+        <!-- DB -->
+        <ellipse cx="168" cy="66" rx="28" ry="14" fill="#1a1f32" stroke="#5a647a" stroke-width="1.2"/>
+        <text x="168" y="70" fill="#8892aa" font-size="9" text-anchor="middle">Database</text>
+        <!-- populate cache -->
+        <path d="M 140 62 Q 120 90 102 52" stroke="#5a647a" stroke-width="1" stroke-dasharray="3,2" fill="none" marker-end="url(#arr)"/>
+        <text x="108" y="88" fill="#5a647a" font-size="7.5" text-anchor="middle">populate</text>
+        <defs>
+          <marker id="arr" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto">
+            <path d="M0,0 L6,3 L0,6 Z" fill="#5a647a"/>
+          </marker>
+          <marker id="arrR" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto">
+            <path d="M0,0 L6,3 L0,6 Z" fill="#ff6b6b"/>
+          </marker>
+        </defs>
+      </svg>
+    </div>
+    <ul class="bullets">
+      <li>Check cache first; fall back to DB on miss</li>
+      <li>Strategies: read-through, write-through, write-back</li>
+      <li>Tools: Redis, Memcached, CDN edge cache</li>
+    </ul>
+  </div>
+
+  <!-- ② ASYNC WRITES -->
+  <div class="card" style="--accent: var(--c2)">
+    <div class="card-num">02 / 08</div>
+    <div class="card-title">Use Async Writes (Message Queues)</div>
+    <div class="diagram">
+      <svg width="210" height="110" viewBox="0 0 210 110">
+        <!-- Client -->
+        <rect x="4" y="36" width="44" height="28" rx="6" fill="#ff9f4322" stroke="#ff9f43" stroke-width="1.2"/>
+        <text x="26" y="54" fill="#ff9f43" font-size="9" text-anchor="middle">Client</text>
+        <!-- arrow -->
+        <line x1="48" y1="50" x2="70" y2="50" stroke="#ff9f43" stroke-width="1.2" marker-end="url(#arr2)"/>
+        <!-- Queue -->
+        <rect x="70" y="30" width="60" height="40" rx="6" fill="#ff9f4322" stroke="#ff9f43" stroke-width="1.5"/>
+        <text x="100" y="47" fill="#ff9f43" font-size="9" text-anchor="middle" font-weight="600">Queue</text>
+        <text x="100" y="59" fill="#ff9f4388" font-size="7.5" text-anchor="middle">Requests</text>
+        <!-- arrow to workers -->
+        <line x1="130" y1="42" x2="152" y2="30" stroke="#5a647a" stroke-width="1" marker-end="url(#arr2g)"/>
+        <line x1="130" y1="58" x2="152" y2="70" stroke="#5a647a" stroke-width="1" marker-end="url(#arr2g)"/>
+        <!-- Workers -->
+        <rect x="152" y="16" width="50" height="24" rx="5" fill="#1a1f32" stroke="#5a647a" stroke-width="1"/>
+        <text x="177" y="31" fill="#8892aa" font-size="9" text-anchor="middle">Worker</text>
+        <rect x="152" y="58" width="50" height="24" rx="5" fill="#1a1f32" stroke="#5a647a" stroke-width="1"/>
+        <text x="177" y="73" fill="#8892aa" font-size="9" text-anchor="middle">Worker</text>
+        <!-- DB below -->
+        <ellipse cx="177" cy="100" rx="24" ry="9" fill="#1a1f32" stroke="#5a647a" stroke-width="1"/>
+        <text x="177" y="103" fill="#5a647a" font-size="7.5" text-anchor="middle">DB</text>
+        <line x1="177" y1="82" x2="177" y2="91" stroke="#5a647a" stroke-width="1" marker-end="url(#arr2g)"/>
+        <defs>
+          <marker id="arr2" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#ff9f43"/></marker>
+          <marker id="arr2g" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#5a647a"/></marker>
+        </defs>
+      </svg>
+    </div>
+    <ul class="bullets">
+      <li>Decouple producers from consumers</li>
+      <li>Prevents overload; retries on failure</li>
+      <li>Tools: Kafka, RabbitMQ, SQS, Bull</li>
+    </ul>
+  </div>
+
+  <!-- ③ LSM-TREE -->
+  <div class="card" style="--accent: var(--c3)">
+    <div class="card-num">03 / 08</div>
+    <div class="card-title">Use LSM-Tree Database</div>
+    <div class="diagram">
+      <svg width="210" height="110" viewBox="0 0 210 110">
+        <!-- Write -->
+        <rect x="4" y="36" width="40" height="24" rx="5" fill="#ee5a2422" stroke="#ee5a24" stroke-width="1.2"/>
+        <text x="24" y="52" fill="#ee5a24" font-size="9" text-anchor="middle">Write</text>
+        <line x1="44" y1="48" x2="64" y2="48" stroke="#ee5a24" stroke-width="1.2" marker-end="url(#arr3)"/>
+        <!-- Memtable -->
+        <rect x="64" y="28" width="60" height="40" rx="6" fill="#ee5a2422" stroke="#ee5a24" stroke-width="1.5"/>
+        <text x="94" y="46" fill="#ee5a24" font-size="9" text-anchor="middle" font-weight="600">Memtable</text>
+        <text x="94" y="58" fill="#ee5a2488" font-size="7" text-anchor="middle">in-memory</text>
+        <!-- flush arrow down -->
+        <text x="94" y="78" fill="#5a647a" font-size="7" text-anchor="middle">flush</text>
+        <line x1="94" y1="68" x2="94" y2="82" stroke="#5a647a" stroke-width="1" stroke-dasharray="3,2" marker-end="url(#arr3g)"/>
+        <!-- SSTable levels -->
+        <rect x="50" y="84" width="88" height="16" rx="4" fill="#1a1f32" stroke="#5a647a" stroke-width="1"/>
+        <text x="94" y="95" fill="#8892aa" font-size="8" text-anchor="middle">SSTable (L0 → L1 → LN)</text>
+        <!-- Compaction label -->
+        <text x="168" y="78" fill="#5a647a" font-size="7.5" text-anchor="middle">compact</text>
+        <path d="M 138 92 Q 162 84 138 84" stroke="#5a647a" stroke-width="1" stroke-dasharray="2,2" fill="none"/>
+        <!-- Read path -->
+        <text x="168" y="38" fill="#5a647a" font-size="7.5" text-anchor="middle">Read</text>
+        <path d="M 150 48 Q 170 48 170 60 Q 170 72 150 80" stroke="#5a647a" stroke-width="1" stroke-dasharray="3,2" fill="none"/>
+        <defs>
+          <marker id="arr3" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#ee5a24"/></marker>
+          <marker id="arr3g" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#5a647a"/></marker>
+        </defs>
+      </svg>
+    </div>
+    <ul class="bullets">
+      <li>Writes go to in-memory Memtable first</li>
+      <li>Flushed to disk as immutable SSTables</li>
+      <li>Used by: Cassandra, RocksDB, LevelDB</li>
+    </ul>
+  </div>
+
+  <!-- ④ REDUNDANCY -->
+  <div class="card" style="--accent: var(--c4)">
+    <div class="card-num">04 / 08</div>
+    <div class="card-title">Implement Redundancy & Failover</div>
+    <div class="diagram">
+      <svg width="210" height="110" viewBox="0 0 210 110">
+        <!-- Primary -->
+        <rect x="4" y="20" width="54" height="28" rx="6" fill="#ffd32a22" stroke="#ffd32a" stroke-width="1.5"/>
+        <text x="31" y="37" fill="#ffd32a" font-size="9" text-anchor="middle" font-weight="600">Primary</text>
+        <!-- Replication line -->
+        <line x1="58" y1="50" x2="100" y2="70" stroke="#5a647a" stroke-width="1" stroke-dasharray="3,2"/>
+        <text x="76" y="66" fill="#5a647a" font-size="7" text-anchor="middle">replicate</text>
+        <!-- Standby -->
+        <rect x="4" y="72" width="54" height="28" rx="6" fill="#1a1f32" stroke="#5a647a" stroke-width="1"/>
+        <text x="31" y="89" fill="#5a647a" font-size="9" text-anchor="middle">Standby</text>
+        <!-- Failover box -->
+        <rect x="90" y="36" width="74" height="32" rx="6" fill="#ffd32a18" stroke="#ffd32a88" stroke-width="1.2"/>
+        <text x="127" y="50" fill="#ffd32a" font-size="8.5" text-anchor="middle" font-weight="600">Failover</text>
+        <text x="127" y="62" fill="#ffd32a88" font-size="7" text-anchor="middle">Decision</text>
+        <!-- X on primary failure -->
+        <text x="68" y="25" fill="#ff6b6b" font-size="14" text-anchor="middle">✕</text>
+        <!-- arrow promote -->
+        <path d="M 90 52 Q 66 52 58 86" stroke="#ffd32a" stroke-width="1.2" stroke-dasharray="3,2" fill="none" marker-end="url(#arr4p)"/>
+        <!-- new servers -->
+        <rect x="170" y="20" width="34" height="22" rx="4" fill="#1a1f32" stroke="#5a647a" stroke-width="1"/>
+        <text x="187" y="34" fill="#5a647a" font-size="7.5" text-anchor="middle">Server</text>
+        <rect x="170" y="54" width="34" height="22" rx="4" fill="#1a1f32" stroke="#5a647a" stroke-width="1"/>
+        <text x="187" y="68" fill="#5a647a" font-size="7.5" text-anchor="middle">Server</text>
+        <line x1="164" y1="52" x2="170" y2="36" stroke="#5a647a" stroke-width="1" marker-end="url(#arr4g)"/>
+        <line x1="164" y1="52" x2="170" y2="60" stroke="#5a647a" stroke-width="1" marker-end="url(#arr4g)"/>
+        <defs>
+          <marker id="arr4p" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#ffd32a"/></marker>
+          <marker id="arr4g" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#5a647a"/></marker>
+        </defs>
+      </svg>
+    </div>
+    <ul class="bullets">
+      <li>Active/passive or active/active setups</li>
+      <li>Health checks trigger automatic promotion</li>
+      <li>Eliminates single points of failure (SPOF)</li>
+    </ul>
+  </div>
+
+  <!-- ⑤ LOAD BALANCING -->
+  <div class="card" style="--accent: var(--c5)">
+    <div class="card-num">05 / 08</div>
+    <div class="card-title">Use Load Balancing</div>
+    <div class="diagram">
+      <svg width="210" height="110" viewBox="0 0 210 110">
+        <!-- Client -->
+        <circle cx="24" cy="55" r="16" fill="#0abde322" stroke="#0abde3" stroke-width="1.5"/>
+        <text x="24" y="52" fill="#0abde3" font-size="7.5" text-anchor="middle">Cli</text>
+        <text x="24" y="62" fill="#0abde3" font-size="7.5" text-anchor="middle">ent</text>
+        <!-- LB -->
+        <rect x="56" y="36" width="46" height="38" rx="8" fill="#0abde322" stroke="#0abde3" stroke-width="1.5"/>
+        <text x="79" y="53" fill="#0abde3" font-size="9" text-anchor="middle" font-weight="700">LB</text>
+        <text x="79" y="65" fill="#0abde388" font-size="7" text-anchor="middle">router</text>
+        <line x1="40" y1="55" x2="56" y2="55" stroke="#0abde3" stroke-width="1.2" marker-end="url(#arr5)"/>
+        <!-- servers -->
+        <rect x="118" y="10" width="44" height="22" rx="5" fill="#1a1f32" stroke="#5a647a" stroke-width="1"/>
+        <text x="140" y="24" fill="#8892aa" font-size="8" text-anchor="middle">Server 1</text>
+        <rect x="118" y="44" width="44" height="22" rx="5" fill="#1a1f32" stroke="#5a647a" stroke-width="1"/>
+        <text x="140" y="58" fill="#8892aa" font-size="8" text-anchor="middle">Server 2</text>
+        <rect x="118" y="78" width="44" height="22" rx="5" fill="#1a1f32" stroke="#5a647a" stroke-width="1"/>
+        <text x="140" y="92" fill="#8892aa" font-size="8" text-anchor="middle">Server 3</text>
+        <!-- arrows -->
+        <line x1="102" y1="48" x2="118" y2="26" stroke="#5a647a" stroke-width="1" marker-end="url(#arr5g)"/>
+        <line x1="102" y1="55" x2="118" y2="55" stroke="#5a647a" stroke-width="1" marker-end="url(#arr5g)"/>
+        <line x1="102" y1="62" x2="118" y2="84" stroke="#5a647a" stroke-width="1" marker-end="url(#arr5g)"/>
+        <!-- algos label -->
+        <text x="172" y="44" fill="#5a647a" font-size="7" text-anchor="middle">Round</text>
+        <text x="172" y="53" fill="#5a647a" font-size="7" text-anchor="middle">Robin /</text>
+        <text x="172" y="62" fill="#5a647a" font-size="7" text-anchor="middle">Least Conn</text>
+        <defs>
+          <marker id="arr5" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#0abde3"/></marker>
+          <marker id="arr5g" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#5a647a"/></marker>
+        </defs>
+      </svg>
+    </div>
+    <ul class="bullets">
+      <li>Distributes traffic across server pool</li>
+      <li>Algorithms: round-robin, least connections, IP hash</li>
+      <li>Tools: Nginx, HAProxy, AWS ALB</li>
+    </ul>
+  </div>
+
+  <!-- ⑥ REPLICATION -->
+  <div class="card" style="--accent: var(--c6)">
+    <div class="card-num">06 / 08</div>
+    <div class="card-title">Use Replication</div>
+    <div class="diagram">
+      <svg width="210" height="110" viewBox="0 0 210 110">
+        <!-- Primary DB -->
+        <rect x="6" y="24" width="58" height="60" rx="8" fill="#48dbfb18" stroke="#48dbfb" stroke-width="1.5"/>
+        <text x="35" y="48" fill="#48dbfb" font-size="9" text-anchor="middle" font-weight="700">Primary</text>
+        <!-- stack lines to look like DB -->
+        <line x1="14" y1="60" x2="56" y2="60" stroke="#48dbfb44" stroke-width="1"/>
+        <line x1="14" y1="68" x2="56" y2="68" stroke="#48dbfb44" stroke-width="1"/>
+        <text x="35" y="58" fill="#48dbfb88" font-size="7" text-anchor="middle">Writes</text>
+        <!-- replication arrows -->
+        <line x1="64" y1="36" x2="86" y2="26" stroke="#48dbfb66" stroke-width="1.2" stroke-dasharray="4,2" marker-end="url(#arr6)"/>
+        <line x1="64" y1="54" x2="86" y2="54" stroke="#48dbfb66" stroke-width="1.2" stroke-dasharray="4,2" marker-end="url(#arr6)"/>
+        <line x1="64" y1="72" x2="86" y2="82" stroke="#48dbfb66" stroke-width="1.2" stroke-dasharray="4,2" marker-end="url(#arr6)"/>
+        <text x="75" y="50" fill="#48dbfb" font-size="7" text-anchor="middle">sync</text>
+        <!-- Replicas -->
+        <rect x="86" y="14" width="50" height="24" rx="5" fill="#1a1f32" stroke="#48dbfb66" stroke-width="1"/>
+        <text x="111" y="29" fill="#48dbfb88" font-size="8" text-anchor="middle">Replica 1</text>
+        <rect x="86" y="42" width="50" height="24" rx="5" fill="#1a1f32" stroke="#48dbfb66" stroke-width="1"/>
+        <text x="111" y="57" fill="#48dbfb88" font-size="8" text-anchor="middle">Replica 2</text>
+        <rect x="86" y="70" width="50" height="24" rx="5" fill="#1a1f32" stroke="#48dbfb66" stroke-width="1"/>
+        <text x="111" y="85" fill="#48dbfb88" font-size="8" text-anchor="middle">Replica 3</text>
+        <!-- reads -->
+        <text x="160" y="30" fill="#5a647a" font-size="7.5" text-anchor="middle">Read</text>
+        <text x="160" y="58" fill="#5a647a" font-size="7.5" text-anchor="middle">Read</text>
+        <text x="160" y="86" fill="#5a647a" font-size="7.5" text-anchor="middle">Read</text>
+        <line x1="136" y1="26" x2="150" y2="26" stroke="#5a647a" stroke-width="1" marker-end="url(#arr6g)"/>
+        <line x1="136" y1="54" x2="150" y2="54" stroke="#5a647a" stroke-width="1" marker-end="url(#arr6g)"/>
+        <line x1="136" y1="82" x2="150" y2="82" stroke="#5a647a" stroke-width="1" marker-end="url(#arr6g)"/>
+        <defs>
+          <marker id="arr6" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#48dbfb66"/></marker>
+          <marker id="arr6g" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#5a647a"/></marker>
+        </defs>
+      </svg>
+    </div>
+    <ul class="bullets">
+      <li>Primary handles writes; replicas serve reads</li>
+      <li>Sync vs async replication trade-offs</li>
+      <li>Boosts read throughput & provides redundancy</li>
+    </ul>
+  </div>
+
+  <!-- ⑦ INDEXES -->
+  <div class="card" style="--accent: var(--c7)">
+    <div class="card-num">07 / 08</div>
+    <div class="card-title">Use Proper Indexes</div>
+    <div class="diagram">
+      <svg width="210" height="110" viewBox="0 0 210 110">
+        <!-- Index table -->
+        <rect x="6" y="14" width="76" height="82" rx="6" fill="#1dd1a115" stroke="#1dd1a1" stroke-width="1.5"/>
+        <text x="44" y="30" fill="#1dd1a1" font-size="8.5" text-anchor="middle" font-weight="700">B-Tree Index</text>
+        <!-- rows -->
+        <rect x="14" y="36" width="16" height="10" rx="2" fill="#1dd1a133"/><text x="22" y="44" fill="#1dd1a1" font-size="7" text-anchor="middle">10</text>
+        <rect x="14" y="50" width="16" height="10" rx="2" fill="#1dd1a122"/><text x="22" y="58" fill="#1dd1a188" font-size="7" text-anchor="middle">20</text>
+        <rect x="14" y="64" width="16" height="10" rx="2" fill="#1dd1a122"/><text x="22" y="72" fill="#1dd1a188" font-size="7" text-anchor="middle">30</text>
+        <rect x="14" y="78" width="16" height="10" rx="2" fill="#1dd1a122"/><text x="22" y="86" fill="#1dd1a188" font-size="7" text-anchor="middle">40</text>
+        <!-- pointer dots -->
+        <circle cx="36" cy="41" r="3" fill="#1dd1a1"/>
+        <circle cx="36" cy="55" r="3" fill="#1dd1a188"/>
+        <circle cx="36" cy="69" r="3" fill="#1dd1a188"/>
+        <circle cx="36" cy="83" r="3" fill="#1dd1a188"/>
+        <!-- arrows to records -->
+        <line x1="39" y1="41" x2="66" y2="32" stroke="#1dd1a1" stroke-width="1" marker-end="url(#arr7)"/>
+        <line x1="39" y1="55" x2="66" y2="48" stroke="#1dd1a166" stroke-width="1" marker-end="url(#arr7g)"/>
+        <line x1="39" y1="69" x2="66" y2="64" stroke="#1dd1a166" stroke-width="1" marker-end="url(#arr7g)"/>
+        <line x1="39" y1="83" x2="66" y2="80" stroke="#1dd1a166" stroke-width="1" marker-end="url(#arr7g)"/>
+        <!-- Records -->
+        <rect x="66" y="26" width="48" height="13" rx="3" fill="#1a1f32" stroke="#1dd1a1" stroke-width="1"/><text x="90" y="35.5" fill="#1dd1a1" font-size="7.5" text-anchor="middle">Record A</text>
+        <rect x="66" y="43" width="48" height="13" rx="3" fill="#1a1f32" stroke="#5a647a" stroke-width="0.8"/><text x="90" y="52.5" fill="#8892aa" font-size="7.5" text-anchor="middle">Record B</text>
+        <rect x="66" y="60" width="48" height="13" rx="3" fill="#1a1f32" stroke="#5a647a" stroke-width="0.8"/><text x="90" y="69.5" fill="#8892aa" font-size="7.5" text-anchor="middle">Record C</text>
+        <rect x="66" y="77" width="48" height="13" rx="3" fill="#1a1f32" stroke="#5a647a" stroke-width="0.8"/><text x="90" y="86.5" fill="#8892aa" font-size="7.5" text-anchor="middle">Record D</text>
+        <!-- O(log n) vs O(n) -->
+        <text x="156" y="38" fill="#1dd1a1" font-size="8" text-anchor="middle">O(log n)</text>
+        <text x="156" y="50" fill="#1dd1a188" font-size="7" text-anchor="middle">w/ index</text>
+        <text x="156" y="68" fill="#ff6b6b" font-size="8" text-anchor="middle">O(n)</text>
+        <text x="156" y="80" fill="#ff6b6b88" font-size="7" text-anchor="middle">full scan</text>
+        <defs>
+          <marker id="arr7" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#1dd1a1"/></marker>
+          <marker id="arr7g" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#1dd1a166"/></marker>
+        </defs>
+      </svg>
+    </div>
+    <ul class="bullets">
+      <li>B-Tree for range queries; Hash for equality</li>
+      <li>Speeds reads, slows writes — choose wisely</li>
+      <li>Composite indexes: order of columns matters</li>
+    </ul>
+  </div>
+
+  <!-- ⑧ SHARDING / LOGGING / BLOCK STORAGE / CDN — combined as remaining 4 -->
+  <!-- Actually let's do the remaining 5 from the image properly -->
+
+  <!-- ⑧ SHARDING -->
+  <div class="card" style="--accent: var(--c8)">
+    <div class="card-num">08 / 08</div>
+    <div class="card-title">Use Sharding to Horizontally Scale</div>
+    <div class="diagram">
+      <svg width="210" height="110" viewBox="0 0 210 110">
+        <!-- Unsharded label -->
+        <rect x="4" y="8" width="58" height="26" rx="4" fill="#c56ef322" stroke="#c56ef3" stroke-width="1.2"/>
+        <text x="33" y="24" fill="#c56ef3" font-size="8" text-anchor="middle" font-weight="600">Unsharded DB</text>
+        <!-- arrow down to shards -->
+        <line x1="33" y1="34" x2="33" y2="52" stroke="#c56ef388" stroke-width="1.2" marker-end="url(#arr8)"/>
+        <text x="70" y="48" fill="#5a647a" font-size="7" text-anchor="middle">partition key</text>
+        <!-- Shard 1 -->
+        <rect x="4" y="54" width="54" height="22" rx="5" fill="#1a1f32" stroke="#c56ef3" stroke-width="1.2"/>
+        <text x="31" y="63" fill="#c56ef3" font-size="8" text-anchor="middle" font-weight="600">Shard 1</text>
+        <text x="31" y="72" fill="#c56ef388" font-size="7" text-anchor="middle">user 0-33%</text>
+        <!-- Shard 2 -->
+        <rect x="66" y="66" width="54" height="22" rx="5" fill="#1a1f32" stroke="#c56ef3" stroke-width="1.2"/>
+        <text x="93" y="75" fill="#c56ef3" font-size="8" text-anchor="middle" font-weight="600">Shard 2</text>
+        <text x="93" y="84" fill="#c56ef388" font-size="7" text-anchor="middle">user 34-66%</text>
+        <line x1="58" y1="68" x2="66" y2="74" stroke="#c56ef366" stroke-width="1" marker-end="url(#arr8)"/>
+        <!-- Shard 3 -->
+        <rect x="128" y="54" width="54" height="22" rx="5" fill="#1a1f32" stroke="#c56ef3" stroke-width="1.2"/>
+        <text x="155" y="63" fill="#c56ef3" font-size="8" text-anchor="middle" font-weight="600">Shard 3</text>
+        <text x="155" y="72" fill="#c56ef388" font-size="7" text-anchor="middle">user 67-100%</text>
+        <line x1="58" y1="60" x2="128" y2="60" stroke="#c56ef344" stroke-width="1" marker-end="url(#arr8)"/>
+        <!-- scale label -->
+        <text x="100" y="104" fill="#5a647a" font-size="7.5" text-anchor="middle">Each shard = independent DB node</text>
+        <defs>
+          <marker id="arr8" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#c56ef388"/></marker>
+        </defs>
+      </svg>
+    </div>
+    <ul class="bullets">
+      <li>Split data across nodes by partition key</li>
+      <li>Consistent hashing minimizes resharding</li>
+      <li>Watch out for cross-shard joins & hot spots</li>
+    </ul>
+  </div>
+
+</div><!-- /grid -->
+
+<!-- Second row: remaining 4 concepts in a 4-col strip -->
+<div style="margin-top: 18px; display: grid; grid-template-columns: repeat(4,1fr); gap: 18px;">
+
+  <!-- Logging -->
+  <div class="card" style="--accent: var(--c9); animation-delay: 0.45s">
+    <div class="card-num">BONUS A</div>
+    <div class="card-title">Use Centralized Logging</div>
+    <div class="diagram">
+      <svg width="100%" height="100" viewBox="0 0 200 100">
+        <!-- Services -->
+        <rect x="2" y="8" width="32" height="18" rx="4" fill="#f368e022" stroke="#f368e0" stroke-width="1"/><text x="18" y="20" fill="#f368e0" font-size="7.5" text-anchor="middle">Svc A</text>
+        <rect x="2" y="32" width="32" height="18" rx="4" fill="#f368e022" stroke="#f368e0" stroke-width="1"/><text x="18" y="44" fill="#f368e0" font-size="7.5" text-anchor="middle">Svc B</text>
+        <rect x="2" y="56" width="32" height="18" rx="4" fill="#f368e022" stroke="#f368e0" stroke-width="1"/><text x="18" y="68" fill="#f368e0" font-size="7.5" text-anchor="middle">Svc C</text>
+        <!-- arrow to Logstash -->
+        <line x1="34" y1="17" x2="58" y2="30" stroke="#5a647a" stroke-width="1" marker-end="url(#arr9g)"/>
+        <line x1="34" y1="41" x2="58" y2="41" stroke="#5a647a" stroke-width="1" marker-end="url(#arr9g)"/>
+        <line x1="34" y1="65" x2="58" y2="52" stroke="#5a647a" stroke-width="1" marker-end="url(#arr9g)"/>
+        <!-- Logstash -->
+        <rect x="58" y="28" width="36" height="28" rx="5" fill="#f368e022" stroke="#f368e0" stroke-width="1.2"/>
+        <text x="76" y="40" fill="#f368e0" font-size="7" text-anchor="middle">Log</text>
+        <text x="76" y="50" fill="#f368e0" font-size="7" text-anchor="middle">stash</text>
+        <!-- to ES -->
+        <line x1="94" y1="42" x2="110" y2="42" stroke="#5a647a" stroke-width="1" marker-end="url(#arr9g)"/>
+        <rect x="110" y="28" width="36" height="28" rx="5" fill="#1a1f32" stroke="#5a647a" stroke-width="1"/>
+        <text x="128" y="40" fill="#8892aa" font-size="6.5" text-anchor="middle">Elastic</text>
+        <text x="128" y="50" fill="#8892aa" font-size="6.5" text-anchor="middle">search</text>
+        <!-- to Kibana -->
+        <line x1="146" y1="42" x2="160" y2="42" stroke="#5a647a" stroke-width="1" marker-end="url(#arr9g)"/>
+        <rect x="160" y="28" width="36" height="28" rx="5" fill="#1a1f32" stroke="#5a647a" stroke-width="1"/>
+        <text x="178" y="45" fill="#8892aa" font-size="7" text-anchor="middle">Kibana</text>
+        <text x="90" y="88" fill="#5a647a" font-size="7.5" text-anchor="middle">ELK Stack</text>
+        <defs>
+          <marker id="arr9g" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#5a647a"/></marker>
+        </defs>
+      </svg>
+    </div>
+    <ul class="bullets">
+      <li>Aggregate logs from all services centrally</li>
+      <li>ELK stack: Logstash → Elasticsearch → Kibana</li>
+      <li>Enables search, alerting, dashboards</li>
+    </ul>
+  </div>
+
+  <!-- Block Storage -->
+  <div class="card" style="--accent: var(--c10); animation-delay: 0.5s">
+    <div class="card-num">BONUS B</div>
+    <div class="card-title">Use Block & Object Storage</div>
+    <div class="diagram">
+      <svg width="100%" height="100" viewBox="0 0 200 100">
+        <!-- Object storage grid -->
+        <rect x="6" y="10" width="90" height="76" rx="8" fill="#54a0ff18" stroke="#54a0ff" stroke-width="1.5"/>
+        <text x="51" y="26" fill="#54a0ff" font-size="8" text-anchor="middle" font-weight="700">Object Storage</text>
+        <!-- blocks -->
+        <rect x="14" y="32" width="22" height="22" rx="4" fill="#54a0ff33"/><text x="25" y="46" fill="#54a0ff" font-size="6.5" text-anchor="middle">Obj</text>
+        <rect x="40" y="32" width="22" height="22" rx="4" fill="#54a0ff22"/><text x="51" y="46" fill="#54a0ff88" font-size="6.5" text-anchor="middle">Obj</text>
+        <rect x="66" y="32" width="22" height="22" rx="4" fill="#54a0ff22"/><text x="77" y="46" fill="#54a0ff88" font-size="6.5" text-anchor="middle">Obj</text>
+        <rect x="14" y="58" width="22" height="22" rx="4" fill="#54a0ff22"/><text x="25" y="72" fill="#54a0ff88" font-size="6.5" text-anchor="middle">Obj</text>
+        <rect x="40" y="58" width="22" height="22" rx="4" fill="#54a0ff22"/><text x="51" y="72" fill="#54a0ff88" font-size="6.5" text-anchor="middle">Obj</text>
+        <rect x="66" y="58" width="22" height="22" rx="4" fill="#54a0ff22"/><text x="77" y="72" fill="#54a0ff88" font-size="6.5" text-anchor="middle">Obj</text>
+        <!-- payload/id -->
+        <rect x="110" y="30" width="40" height="14" rx="3" fill="#1a1f32" stroke="#54a0ff66" stroke-width="1"/><text x="130" y="40" fill="#8892aa" font-size="7" text-anchor="middle">Payload</text>
+        <rect x="154" y="30" width="28" height="14" rx="3" fill="#1a1f32" stroke="#54a0ff44" stroke-width="1"/><text x="168" y="40" fill="#8892aa" font-size="7" text-anchor="middle">Id</text>
+        <rect x="110" y="50" width="28" height="14" rx="3" fill="#1a1f32" stroke="#54a0ff44" stroke-width="1"/><text x="124" y="60" fill="#8892aa" font-size="7" text-anchor="middle">Object</text>
+        <rect x="142" y="50" width="28" height="14" rx="3" fill="#1a1f32" stroke="#54a0ff44" stroke-width="1"/><text x="156" y="60" fill="#8892aa" font-size="7" text-anchor="middle">Object</text>
+        <rect x="110" y="70" width="28" height="14" rx="3" fill="#1a1f32" stroke="#54a0ff44" stroke-width="1"/><text x="124" y="80" fill="#8892aa" font-size="7" text-anchor="middle">Id</text>
+        <rect x="142" y="70" width="40" height="14" rx="3" fill="#1a1f32" stroke="#54a0ff66" stroke-width="1"/><text x="162" y="80" fill="#8892aa" font-size="7" text-anchor="middle">Payload</text>
+      </svg>
+    </div>
+    <ul class="bullets">
+      <li>Block: low-latency, attached volumes (EBS)</li>
+      <li>Object: flat namespace, infinite scale (S3)</li>
+      <li>Use S3 for blobs; block storage for DBs</li>
+    </ul>
+  </div>
+
+  <!-- CDN -->
+  <div class="card" style="--accent: var(--c11); animation-delay: 0.55s">
+    <div class="card-num">BONUS C</div>
+    <div class="card-title">Use CDN to Reduce Latency</div>
+    <div class="diagram">
+      <svg width="100%" height="100" viewBox="0 0 200 100">
+        <!-- User A -->
+        <circle cx="20" cy="30" r="12" fill="#00d2d322" stroke="#00d2d3" stroke-width="1.2"/>
+        <text x="20" y="34" fill="#00d2d3" font-size="7.5" text-anchor="middle">User</text>
+        <!-- User B -->
+        <circle cx="20" cy="72" r="12" fill="#00d2d318" stroke="#00d2d388" stroke-width="1"/>
+        <text x="20" y="76" fill="#00d2d388" font-size="7.5" text-anchor="middle">User</text>
+        <!-- DNS -->
+        <rect x="44" y="42" width="34" height="16" rx="4" fill="#1a1f32" stroke="#5a647a" stroke-width="1"/>
+        <text x="61" y="53" fill="#8892aa" font-size="7.5" text-anchor="middle">DNS</text>
+        <line x1="32" y1="36" x2="48" y2="46" stroke="#5a647a" stroke-width="1" stroke-dasharray="3,2" marker-end="url(#arr11g)"/>
+        <line x1="32" y1="68" x2="48" y2="54" stroke="#5a647a" stroke-width="1" stroke-dasharray="3,2" marker-end="url(#arr11g)"/>
+        <!-- CDN nodes -->
+        <rect x="88" y="14" width="42" height="24" rx="5" fill="#00d2d322" stroke="#00d2d3" stroke-width="1.3"/>
+        <text x="109" y="24" fill="#00d2d3" font-size="8" text-anchor="middle" font-weight="700">CDN</text>
+        <text x="109" y="33" fill="#00d2d388" font-size="6.5" text-anchor="middle">Edge Node</text>
+        <rect x="88" y="62" width="42" height="24" rx="5" fill="#00d2d322" stroke="#00d2d3" stroke-width="1.3"/>
+        <text x="109" y="72" fill="#00d2d3" font-size="8" text-anchor="middle" font-weight="700">CDN</text>
+        <text x="109" y="81" fill="#00d2d388" font-size="6.5" text-anchor="middle">Edge Node</text>
+        <line x1="78" y1="46" x2="88" y2="30" stroke="#00d2d366" stroke-width="1.2" marker-end="url(#arr11)"/>
+        <line x1="78" y1="54" x2="88" y2="70" stroke="#00d2d366" stroke-width="1.2" marker-end="url(#arr11)"/>
+        <!-- Origin -->
+        <rect x="148" y="36" width="44" height="28" rx="5" fill="#1a1f32" stroke="#5a647a" stroke-width="1"/>
+        <text x="170" y="48" fill="#8892aa" font-size="8" text-anchor="middle">Origin</text>
+        <text x="170" y="58" fill="#5a647a" font-size="7" text-anchor="middle">Server</text>
+        <line x1="130" y1="30" x2="148" y2="44" stroke="#5a647a" stroke-width="1" stroke-dasharray="3,2" marker-end="url(#arr11g)"/>
+        <line x1="130" y1="70" x2="148" y2="56" stroke="#5a647a" stroke-width="1" stroke-dasharray="3,2" marker-end="url(#arr11g)"/>
+        <defs>
+          <marker id="arr11" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#00d2d366"/></marker>
+          <marker id="arr11g" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#5a647a"/></marker>
+        </defs>
+      </svg>
+    </div>
+    <ul class="bullets">
+      <li>Serves static assets from edge nodes near users</li>
+      <li>DNS routes to nearest point of presence (PoP)</li>
+      <li>Tools: Cloudflare, CloudFront, Fastly</li>
+    </ul>
+  </div>
+
+  <!-- Quick Reference cheatsheet -->
+  <div class="card" style="--accent: #8892aa; animation-delay: 0.6s">
+    <div class="card-num">REF</div>
+    <div class="card-title">Quick Reference Cheatsheet</div>
+    <div style="background: var(--surface); border-radius: 10px; padding: 12px; border: 1px solid var(--border); font-family: 'JetBrains Mono', monospace; font-size: 10px; line-height: 1.9; color: var(--dim);">
+      <div><span style="color:#ff6b6b">Cache</span>   → Redis, Memcached</div>
+      <div><span style="color:#ff9f43">Queue</span>   → Kafka, RabbitMQ</div>
+      <div><span style="color:#ee5a24">LSM-DB</span>  → Cassandra, RocksDB</div>
+      <div><span style="color:#ffd32a">Failover</span>→ active-passive / active-active</div>
+      <div><span style="color:#0abde3">LB</span>      → Nginx, HAProxy, ALB</div>
+      <div><span style="color:#48dbfb">Replica</span> → primary + N read replicas</div>
+      <div><span style="color:#1dd1a1">Index</span>   → B-Tree, Hash, Composite</div>
+      <div><span style="color:#c56ef3">Shard</span>   → consistent hashing</div>
+      <div><span style="color:#f368e0">Logging</span> → ELK Stack</div>
+      <div><span style="color:#54a0ff">Storage</span> → S3 blobs / EBS block</div>
+      <div><span style="color:#00d2d3">CDN</span>     → Cloudflare, CloudFront</div>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  <div style="margin-bottom:6px;">Based on ByteByteGo · 8 Most Important System Design Concepts</div>
+  <div style="color:#2d3550">─────────────────────────────────────────────</div>
+</footer>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FanDuel SWE — Risk & .NET Core System Design</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0e1118;--surface:#161b27;--card:#1a2030;--card-inner:#111520;
+  --border:rgba(255,255,255,0.07);--text:#f0f2ff;--muted:#8892aa;--dim:#4a5270;
+  --mono:'JetBrains Mono',monospace;--sans:'DM Sans',sans-serif;
+}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;line-height:1.6;min-height:100vh}
+body::before{content:'';position:fixed;inset:0;background-image:radial-gradient(circle,rgba(255,255,255,0.025) 1px,transparent 1px);background-size:32px 32px;pointer-events:none;z-index:0}
+.wrap{position:relative;z-index:1;max-width:1240px;margin:0 auto;padding:0 24px 60px}
+
+/* HEADER */
+.page-header{text-align:center;padding:52px 0 44px}
+.page-eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:0.22em;text-transform:uppercase;color:var(--dim);margin-bottom:14px}
+.page-title{font-size:clamp(32px,5.5vw,60px);font-weight:700;line-height:1.05;letter-spacing:-1.5px;color:var(--text);margin-bottom:12px}
+.page-title .g1{background:linear-gradient(135deg,#ff6b6b,#ff9f43);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.page-title .g2{background:linear-gradient(135deg,#00b4d8,#90e0ef);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.page-subtitle{color:var(--muted);font-size:14px;max-width:620px;margin:0 auto}
+.tab-row{display:flex;justify-content:center;gap:10px;margin-top:28px;flex-wrap:wrap}
+.tab-btn{font-family:var(--mono);font-size:11px;letter-spacing:0.1em;text-transform:uppercase;padding:8px 18px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;transition:all 0.18s}
+.tab-btn.active{background:var(--accent-tab, #ff6b6b);color:#000;border-color:transparent;font-weight:600}
+.tab-btn:hover:not(.active){border-color:rgba(255,255,255,0.18);color:var(--text)}
+.progress-row{display:flex;align-items:center;justify-content:center;gap:12px;margin-top:20px}
+.progress-label{font-family:var(--mono);font-size:12px;color:var(--dim)}
+.progress-track{width:160px;height:4px;background:rgba(255,255,255,0.08);border-radius:2px;overflow:hidden}
+.progress-fill{height:100%;border-radius:2px;background:linear-gradient(90deg,#ff6b6b,#ff9f43);transition:width 0.4s ease}
+
+/* SECTION LABEL */
+.section-heading{font-family:var(--mono);font-size:11px;letter-spacing:0.16em;text-transform:uppercase;color:var(--dim);margin:32px 0 16px;display:flex;align-items:center;gap:12px}
+.section-heading::after{content:'';flex:1;height:1px;background:var(--border)}
+
+/* CARD GRID */
+.card-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+@media(max-width:1000px){.card-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:560px){.card-grid{grid-template-columns:1fr}}
+
+/* CONCEPT CARD */
+.concept-card{background:var(--card);border:1px solid var(--border);border-top:3px solid var(--accent,#888);border-radius:14px;overflow:hidden;cursor:pointer;position:relative;transition:transform 0.2s ease,box-shadow 0.2s ease;animation:fadeUp 0.4s ease both}
+.concept-card:hover{transform:translateY(-3px);box-shadow:0 16px 40px rgba(0,0,0,0.5)}
+.concept-card.viewed{box-shadow:0 0 0 1px var(--accent,#888) inset}
+.viewed-badge{display:none;position:absolute;top:14px;right:14px;width:8px;height:8px;border-radius:50%;background:#4ade80;box-shadow:0 0 6px #4ade80}
+.concept-card.viewed .viewed-badge{display:block}
+.card-body{padding:18px 18px 16px}
+.card-num{font-family:var(--mono);font-size:10px;letter-spacing:0.12em;color:var(--accent,#888);margin-bottom:8px}
+.card-title{font-size:15px;font-weight:700;color:var(--text);line-height:1.3;margin-bottom:14px;min-height:44px}
+.card-diagram{background:var(--card-inner);border-radius:8px;margin-bottom:14px;border:1px solid rgba(255,255,255,0.05);overflow:hidden;padding:10px 8px 8px}
+.card-diagram svg{display:block;width:100%;height:auto}
+.card-bullets{list-style:none;padding:0}
+.card-bullets li{font-size:12px;color:var(--muted);padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.04);display:flex;gap:7px;line-height:1.45}
+.card-bullets li:last-child{border-bottom:none}
+.card-bullets li::before{content:'›';color:var(--accent,#888);flex-shrink:0;font-weight:700;font-size:14px;line-height:1.3}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+
+/* DETAIL VIEW */
+.detail-view{display:none;animation:fadeUp 0.3s ease both}
+.detail-view.open{display:block}
+.detail-back{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);cursor:pointer;padding:20px 0 0;background:none;border:none;font-family:var(--sans);transition:color 0.15s}
+.detail-back:hover{color:var(--text)}
+.detail-header{margin:18px 0 22px}
+.detail-num{font-family:var(--mono);font-size:11px;letter-spacing:0.14em;color:var(--accent,#888);margin-bottom:8px}
+.detail-title{font-size:28px;font-weight:700;color:var(--text);letter-spacing:-0.5px;line-height:1.15}
+.detail-diagram{background:var(--card-inner);border:1px solid rgba(255,255,255,0.06);border-top:3px solid var(--accent,#888);border-radius:0 0 12px 12px;padding:20px 16px 16px;margin-bottom:20px}
+.detail-diagram svg{display:block;width:100%;height:auto}
+
+/* code block */
+.code-block{background:#0a0d14;border:1px solid rgba(255,255,255,0.08);border-left:3px solid var(--accent,#888);border-radius:0 8px 8px 0;padding:16px 18px;margin:14px 0;overflow-x:auto}
+.code-block pre{font-family:var(--mono);font-size:12px;line-height:1.7;color:#c8d3f5;white-space:pre}
+.code-block .kw{color:#ff9f43}
+.code-block .cls{color:#48dbfb}
+.code-block .str{color:#4ade80}
+.code-block .cmt{color:#4a5270;font-style:italic}
+.code-block .attr{color:#f368e0}
+.code-block .num{color:#ffd32a}
+
+.fanduel-box{background:var(--card);border:1px solid rgba(255,255,255,0.07);border-left:3px solid var(--accent,#888);border-radius:0 12px 12px 0;padding:18px 20px;margin-bottom:20px}
+.box-label{font-family:var(--mono);font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:var(--accent,#888);margin-bottom:10px}
+.fanduel-box p{font-size:13.5px;color:var(--muted);line-height:1.75;margin-bottom:12px}
+.fanduel-box ul{list-style:none;padding:0}
+.fanduel-box ul li{font-size:13px;color:var(--muted);padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.05);display:flex;gap:8px;line-height:1.5}
+.fanduel-box ul li:last-child{border-bottom:none}
+.fanduel-box ul li::before{content:'→';color:var(--accent,#888);flex-shrink:0;font-weight:600}
+
+.body-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
+@media(max-width:680px){.body-grid{grid-template-columns:1fr}}
+.section-card{background:var(--card);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:18px}
+.section-card h3{font-family:var(--mono);font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:var(--dim);margin-bottom:12px}
+.section-card p{font-size:13px;color:var(--muted);line-height:1.7}
+.section-card ul{list-style:none;padding:0}
+.section-card ul li{font-size:13px;color:var(--muted);padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.05);display:flex;gap:8px;line-height:1.5}
+.section-card ul li:last-child{border-bottom:none}
+.section-card ul li::before{content:'›';flex-shrink:0;font-weight:700;font-size:14px}
+.tools-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px}
+.tool-badge{font-family:var(--mono);font-size:11px;padding:3px 9px;border-radius:5px;background:rgba(255,255,255,0.05);color:var(--muted);border:1px solid rgba(255,255,255,0.08)}
+.interview-q{background:var(--card);border:1px solid rgba(255,255,255,0.07);border-top:3px solid #ffd166;border-radius:0 0 12px 12px;padding:18px 20px}
+.q-label{font-family:var(--mono);font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:#ffd166;margin-bottom:10px}
+.question{font-size:15px;color:var(--text);font-style:italic;line-height:1.65;margin-bottom:14px}
+.answer-hint{font-size:13px;color:var(--muted);line-height:1.7;border-top:1px solid rgba(255,255,255,0.06);padding-top:12px}
+
+svg text{font-family:'JetBrains Mono',monospace}
+.t{font-size:13px;fill:#e8eaf2}
+.ts{font-size:11px;fill:#6b7494}
+.th{font-size:13px;fill:#e8eaf2;font-weight:500}
+
+.hidden{display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="page-header">
+  <div class="page-eyebrow">FanDuel SWE Interview Prep · Real-World Architecture</div>
+  <h1 class="page-title"><span class="g1">Risk Management</span> &amp; <span class="g2">.NET Core</span><br>System Design</h1>
+  <p class="page-subtitle">Production-grade patterns used inside a real sports betting platform — built for your FanDuel interview</p>
+  <div class="tab-row">
+    <button class="tab-btn active" style="--accent-tab:#ff6b6b" onclick="switchTab('risk',this)">Risk Management</button>
+    <button class="tab-btn" style="--accent-tab:#00b4d8" onclick="switchTab('dotnet',this)">.NET Core Architecture</button>
+    <button class="tab-btn" style="--accent-tab:#c56ef3" onclick="switchTab('combined',this)">Combined Patterns</button>
+  </div>
+  <div class="progress-row">
+    <span class="progress-label" id="progress-text">0 / 18 reviewed</span>
+    <div class="progress-track"><div class="progress-fill" id="pbar" style="width:0%"></div></div>
+  </div>
+</div>
+
+<div id="grid-view">
+  <div id="risk-section">
+    <div class="section-heading">Risk Management — Real Money Wagering at Scale</div>
+    <div class="card-grid" id="risk-grid"></div>
+  </div>
+  <div id="dotnet-section" class="hidden">
+    <div class="section-heading">.NET Core Architecture — FanDuel Backend Stack</div>
+    <div class="card-grid" id="dotnet-grid"></div>
+  </div>
+  <div id="combined-section" class="hidden">
+    <div class="section-heading">Combined — Risk + .NET Core in Production</div>
+    <div class="card-grid" id="combined-grid"></div>
+  </div>
+</div>
+
+<div class="detail-view" id="detail-view">
+  <button class="detail-back" onclick="closeDetail()">← Back to concepts</button>
+  <div id="detail-content"></div>
+</div>
+
+</div>
+<script>
+const RISK = [
+  {
+    id:0,num:"R01",accent:"#ff6b6b",
+    title:"Bet Liability & Exposure Management",
+    bullets:["Track open liability per market in real time","Limit max payout exposure per event","Auto-suspend markets when liability threshold breached"],
+    summary:"Liability management is FanDuel's core risk function. Every accepted bet adds to the platform's potential payout obligation. The risk engine continuously aggregates open liability across all markets, triggers automatic line moves or market suspensions when exposure breaches thresholds, and routes sharp action to trading desks for human review.",
+    howItWorks:["Each accepted bet is published to a Kafka topic: {marketId, selection, stake, odds, userId}","A real-time aggregation service (Kafka Streams / .NET hosted service) maintains running totals per market","Liability = sum of (stake × (odds - 1)) for all open bets on each selection","When liability on any outcome exceeds MAX_LIABILITY threshold, the market is auto-suspended","Trading desk receives alerts and decides: adjust lines, accept more, or keep suspended","All liability state is stored in Redis for sub-millisecond reads during bet acceptance"],
+    fanduel:"During Super Bowl LIX, FanDuel might have $400M in open bets on a single game. The liability engine must process 500k bets/min, maintain per-market exposure in real time, and trigger line moves within 100ms of threshold breach. A miscalculation that allows overexposure on a $20M payout would be catastrophic. This is the most critical system in the stack.",
+    fanDuelExamples:["Max liability per market: $5M on a single NFL moneyline selection before auto-suspend","Sharp money detection: if a user bets $50k on a line, auto-flag for trading review before acceptance","Line adjustment: liability imbalance triggers odds recalculation to attract action on the other side","Multi-leg parlays: each leg compounds liability — tracked separately and combined at the bet level"],
+    interviewQ:"Design the liability management system for FanDuel. How do you prevent a $50M overexposure on a single game?",
+    interviewHint:"Describe a Kafka Streams topology that maintains a running KTable of liability per marketId+selectionId. Bet acceptance checks this KTable before confirming (synchronous check via Redis cache). When liability exceeds threshold, publish to a suspension topic consumed by the odds service. Discuss idempotency for retries and how you handle the 'last bet before suspension' race condition using Redis INCR with Lua scripts for atomic compare-and-set.",
+    tools:["Kafka Streams","Redis INCR / Lua","SignalR (push suspension)","C# hosted services","Prometheus metrics"],
+    tradeoffs:"In-memory state per Kafka partition means partition rebalancing requires state rebuild. Redis as source-of-truth for real-time checks adds a network hop. Eventual consistency between Kafka state and Redis means brief overexposure is possible — mitigate with a hard cap enforced atomically in Redis.",
+    diagramSvg:`<svg width="100%" viewBox="0 0 320 130"><defs><marker id="r0" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs><rect x="2" y="50" width="62" height="28" rx="6" fill="#ff6b6b22" stroke="#ff6b6b" stroke-width="1.2"/><text class="th" x="33" y="64" text-anchor="middle" dominant-baseline="central" fill="#ff6b6b">Bet placed</text><line x1="64" y1="64" x2="90" y2="64" stroke="#ff6b6b" stroke-width="1" marker-end="url(#r0)"/><rect x="90" y="42" width="72" height="44" rx="6" fill="#ff9f4322" stroke="#ff9f43" stroke-width="1.2"/><text class="th" x="126" y="58" text-anchor="middle" dominant-baseline="central" fill="#ff9f43">Liability</text><text class="ts" x="126" y="74" text-anchor="middle" dominant-baseline="central" fill="#6b7494">engine</text><line x1="162" y1="55" x2="192" y2="28" stroke="#4ade80" stroke-width="1" marker-end="url(#r0)"/><line x1="162" y1="73" x2="192" y2="100" stroke="#ff6b6b" stroke-width="1" stroke-dasharray="3 2" marker-end="url(#r0)"/><rect x="192" y="14" width="78" height="24" rx="5" fill="#4ade8018" stroke="#4ade80" stroke-width="1"/><text class="ts" x="231" y="26" text-anchor="middle" dominant-baseline="central" fill="#4ade80">ACCEPT</text><rect x="192" y="88" width="78" height="24" rx="5" fill="#ff6b6b18" stroke="#ff6b6b" stroke-width="1"/><text class="ts" x="231" y="100" text-anchor="middle" dominant-baseline="central" fill="#ff6b6b">SUSPEND</text><text class="ts" x="175" y="46" fill="#6b7494">OK</text><text class="ts" x="158" y="90" fill="#ff6b6b">breach</text></svg>`
+  },
+  {
+    id:1,num:"R02",accent:"#ff9f43",
+    title:"Sharp Money Detection & Profiling",
+    bullets:["Identify +EV bettors before they drain the book","Bet velocity, stake patterns, line-shopping signals","Route sharp action to manual review queue"],
+    summary:"Sharp bettors (professionals who consistently beat the market) are the primary long-term risk to a sportsbook. FanDuel's risk engine profiles every user and every bet, detecting signals that indicate professional or syndicate wagering — then limits, flags, or restricts accounts before significant damage occurs.",
+    howItWorks:["User risk score updated after every settled bet: win rate, CLV (closing line value), stake patterns","Real-time signals: large stake (>$10k), rapid fire betting on same market, line-shopping from multiple accounts","ML model (gradient boosted tree) scores each bet 0-100 on sharpness probability","High-score bets route to manual approval queue before acceptance (adds ~500ms latency)","Account restrictions applied dynamically: stake limits, reduced odds, withdrawal flags","Sharp accounts tracked in a risk profile store (Postgres + Redis) updated after every bet"],
+    fanduel:"FanDuel must balance taking bets from all users (including sharps who provide liquidity) while managing long-term P&L. A syndicate using multiple accounts to place correlated bets on the same mispriced line could cost millions before detection. The profiling system runs on every single bet — at 500k bets/minute, this is a high-throughput ML inference problem.",
+    fanDuelExamples:["CLV tracking: if a user consistently beats the closing line by >5%, they are flagged as sharp","Velocity check: 3 bets on same market in <60s from different IPs → correlated accounts alert","Stake pattern: gradual escalation from $50→$500→$5000 on same market = line-shopping probe","Multi-account detection: shared device fingerprints, payment methods, IP clusters flagged for review"],
+    interviewQ:"How would you design a real-time sharp bettor detection system at FanDuel processing 500k bets/minute?",
+    interviewHint:"Describe a feature pipeline: each bet event triggers feature extraction (CLV, stake size, velocity, market correlation) published to a feature store (Redis or Feast). A lightweight ML model (loaded via ML.NET or ONNX Runtime) scores the bet in <5ms. High-risk bets enter an async review queue (Kafka topic consumed by trading desk). Discuss model refresh cadence and A/B testing risk thresholds.",
+    tools:["ML.NET","ONNX Runtime","Redis feature store","Kafka review queue","Postgres risk profiles"],
+    tradeoffs:"Aggressive sharp limits reduce liability but also reduce handle from sophisticated bettors. False positives (flagging recreational bettors as sharp) cause customer complaints. The threshold is a business decision as much as a technical one. Model staleness is a risk — daily retraining cycle required.",
+    diagramSvg:`<svg width="100%" viewBox="0 0 320 130"><defs><marker id="r1" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs><rect x="2" y="50" width="56" height="28" rx="6" fill="#ff9f4322" stroke="#ff9f43" stroke-width="1.2"/><text class="th" x="30" y="64" text-anchor="middle" dominant-baseline="central" fill="#ff9f43">Bet event</text><line x1="58" y1="64" x2="82" y2="64" stroke="#ff9f43" stroke-width="1" marker-end="url(#r1)"/><rect x="82" y="42" width="72" height="44" rx="6" fill="#c56ef322" stroke="#c56ef3" stroke-width="1.2"/><text class="th" x="118" y="56" text-anchor="middle" dominant-baseline="central" fill="#c56ef3">ML Score</text><text class="ts" x="118" y="72" text-anchor="middle" dominant-baseline="central" fill="#6b7494">0-100</text><line x1="154" y1="52" x2="178" y2="26" stroke="#4ade80" stroke-width="1" marker-end="url(#r1)"/><line x1="154" y1="64" x2="178" y2="64" stroke="#ffd166" stroke-width="1" marker-end="url(#r1)"/><line x1="154" y1="76" x2="178" y2="100" stroke="#ff6b6b" stroke-width="1" stroke-dasharray="3 2" marker-end="url(#r1)"/><rect x="178" y="12" width="80" height="24" rx="5" fill="#4ade8018" stroke="#4ade80" stroke-width="1"/><text class="ts" x="218" y="24" text-anchor="middle" dominant-baseline="central" fill="#4ade80">Auto-accept</text><rect x="178" y="50" width="80" height="24" rx="5" fill="#ffd16618" stroke="#ffd166" stroke-width="1"/><text class="ts" x="218" y="62" text-anchor="middle" dominant-baseline="central" fill="#ffd166">Review queue</text><rect x="178" y="88" width="80" height="24" rx="5" fill="#ff6b6b18" stroke="#ff6b6b" stroke-width="1"/><text class="ts" x="218" y="100" text-anchor="middle" dominant-baseline="central" fill="#ff6b6b">Limit account</text></svg>`
+  },
+  {
+    id:2,num:"R03",accent:"#ffd32a",
+    title:"Fraud Detection & AML Compliance",
+    bullets:["Anti-money laundering transaction monitoring","Identity verification (KYC) at onboarding","Suspicious pattern detection across accounts"],
+    summary:"FanDuel operates under strict financial regulations. Every customer must be KYC verified, deposits/withdrawals monitored for AML patterns, and suspicious activity reported to FinCEN. The fraud system runs in parallel with the bet pipeline — never blocking real money flow, but flagging and escalating for compliance review.",
+    howItWorks:["KYC: identity documents verified via vendor API (Jumio/Onfido) at account creation — async, non-blocking","AML: all financial transactions published to a compliance Kafka topic; rules engine evaluates patterns","Structuring detection: multiple deposits just under $10k threshold triggers SAR (Suspicious Activity Report)","Velocity rules: >5 withdrawals in 24h, or withdrawal to new payment method within 72h of large deposit","Graph analysis: shared bank accounts, devices, or addresses across accounts detected via Neo4j","All flagged accounts enter a compliance hold — bets still accepted, withdrawals frozen pending review"],
+    fanduel:"FanDuel holds gaming licenses in 20+ states, each with different AML thresholds and reporting requirements. A regulatory failure (failing to file a SAR, allowing underage gambling, processing laundered funds) could result in license revocation. The compliance system is mission-critical but also must never block the betting UX — it runs asynchronously alongside the bet pipeline.",
+    fanDuelExamples:["$10k+ withdrawal: auto-trigger enhanced due diligence review and hold pending compliance clearance","Structuring: 3 deposits of $9,900 in 48h → auto-file SAR with FinCEN via FINCEN API integration","Self-exclusion: player requests exclusion → immediate account lock, bet slip rejection, all states synced","Geolocation: every bet validates user GPS/IP against licensed state boundaries in real time"],
+    interviewQ:"How do you build an AML-compliant withdrawal system for FanDuel that doesn't block the betting experience?",
+    interviewHint:"Describe async compliance pipeline: withdrawals publish to a Kafka topic consumed by rules engine. Normal withdrawals (<$2k, established payment method, verified user) auto-approve. Edge cases enter compliance queue. Discuss eventual consistency — withdrawal is in 'pending' state until compliance check completes. Use the Saga pattern to rollback if compliance fails after initial approval. Mention state-specific rule configurations stored in a config service.",
+    tools:["Jumio/Onfido KYC","Neo4j (graph fraud)","Kafka compliance topic","Saga pattern","Azure Compliance APIs"],
+    tradeoffs:"Async compliance checks mean a fraudulent withdrawal might be initiated before detection — mitigate with a hold on funds for 24-48h. Too many false positives in AML rules destroy user experience. State-specific rules create a complex configuration management problem.",
+    diagramSvg:`<svg width="100%" viewBox="0 0 320 130"><defs><marker id="r2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs><rect x="2" y="50" width="60" height="28" rx="6" fill="#ffd32a20" stroke="#ffd32a" stroke-width="1.2"/><text class="th" x="32" y="64" text-anchor="middle" dominant-baseline="central" fill="#ffd32a">Withdraw</text><line x1="62" y1="64" x2="86" y2="64" stroke="#ffd32a" stroke-width="1" marker-end="url(#r2)"/><rect x="86" y="44" width="68" height="40" rx="6" fill="#1e2535" stroke="#3a4060" stroke-width="1"/><text class="th" x="120" y="58" text-anchor="middle" dominant-baseline="central" fill="#8892aa">Rules</text><text class="ts" x="120" y="74" text-anchor="middle" dominant-baseline="central" fill="#6b7494">engine</text><line x1="154" y1="56" x2="178" y2="28" stroke="#4ade80" stroke-width="1" marker-end="url(#r2)"/><line x1="154" y1="72" x2="178" y2="100" stroke="#ff6b6b" stroke-width="1" stroke-dasharray="3 2" marker-end="url(#r2)"/><rect x="178" y="14" width="90" height="24" rx="5" fill="#4ade8018" stroke="#4ade80" stroke-width="1"/><text class="ts" x="223" y="26" text-anchor="middle" dominant-baseline="central" fill="#4ade80">Auto-approve</text><rect x="178" y="88" width="90" height="24" rx="5" fill="#ff6b6b18" stroke="#ff6b6b" stroke-width="1"/><text class="ts" x="223" y="100" text-anchor="middle" dominant-baseline="central" fill="#ff6b6b">Compliance hold</text><rect x="178" y="50" width="90" height="24" rx="5" fill="#ffd32a18" stroke="#ffd32a" stroke-width="1"/><text class="ts" x="223" y="62" text-anchor="middle" dominant-baseline="central" fill="#ffd32a">SAR filing</text></svg>`
+  },
+  {
+    id:3,num:"R04",accent:"#ee5a24",
+    title:"Real-Time Odds Pricing & Line Movement",
+    bullets:["Ingest feed, apply margin, publish to clients","React to sharp money by moving lines","Correlation: parlay legs priced independently"],
+    summary:"Odds pricing is where risk management meets product. FanDuel ingests raw probability data from trading models and external feeds, applies vig (margin), monitors for correlated bets that bypass the margin, and publishes real-time updates to millions of connected clients via WebSocket/SignalR.",
+    howItWorks:["Odds feed ingested from Sportradar/Genius Sports via AMQP — probabilities normalized to book percentages","Vig applied: true probability × (1 + margin %) → displayed American odds","Line movement: when liability imbalances or sharp action detected, probability adjusted ±0.5% per step","Correlation detection: two bets that are positively correlated (e.g. same player scores + team wins) must be priced together, not independently","SignalR hub broadcasts odds changes to all connected clients within 200ms of feed update","Circuit breaker on odds feed: stale feed >30s triggers market suspension to prevent arbitrage"],
+    fanduel:"FanDuel publishes odds to millions of users simultaneously. A 200ms latency spike on odds delivery means users are betting on stale lines — creating arbitrage opportunities against FanDuel. The pricing system must handle 100k+ odds updates/minute, push to millions of WebSocket connections, and detect feed staleness before it causes financial exposure.",
+    fanDuelExamples:["Live in-game odds: recalculated every 5 seconds during NFL games, pushed via SignalR to all connected clients","Parlay correlation: QB touchdown prop + team wins parlay gets a negative correlation adjustment (+5% to odds)","Arbitrage detection: if two outcomes of same market sum to <100% probability, suspend immediately","Steam moves: sudden volume from multiple sharp accounts on same line triggers an emergency line move"],
+    interviewQ:"Design the real-time odds delivery system for FanDuel serving 2M concurrent users during Super Bowl.",
+    interviewHint:"Describe a fan-out architecture: odds updates published to Kafka → SignalR backplane (Redis pub/sub) → SignalR hubs scale horizontally → WebSocket connections per hub. Discuss connection management (sticky sessions via ARR/Nginx), delta compression (only send changed odds), and graceful degradation (polling fallback if WebSocket drops). Key metric: 99th percentile odds delivery latency <500ms.",
+    tools:["SignalR + Redis backplane","Kafka","MessagePack serialization","Azure Service Bus","Sportradar API"],
+    tradeoffs:"SignalR with Redis backplane scales to millions of connections but adds latency vs direct WebSocket. Delta compression reduces bandwidth but increases server-side diff computation. Fanout to millions requires careful connection grouping (by sport, by event) to avoid broadcasting unnecessarily.",
+    diagramSvg:`<svg width="100%" viewBox="0 0 320 130"><defs><marker id="r3" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs><rect x="2" y="50" width="62" height="28" rx="6" fill="#ee5a2422" stroke="#ee5a24" stroke-width="1.2"/><text class="th" x="33" y="64" text-anchor="middle" dominant-baseline="central" fill="#ee5a24">Odds feed</text><line x1="64" y1="64" x2="88" y2="64" stroke="#ee5a24" stroke-width="1" marker-end="url(#r3)"/><rect x="88" y="44" width="68" height="40" rx="6" fill="#ff9f4320" stroke="#ff9f43" stroke-width="1.2"/><text class="th" x="122" y="58" text-anchor="middle" dominant-baseline="central" fill="#ff9f43">Pricing</text><text class="ts" x="122" y="74" text-anchor="middle" dominant-baseline="central" fill="#6b7494">+vig +margin</text><line x1="156" y1="64" x2="180" y2="64" stroke="#6b7494" stroke-width="1" marker-end="url(#r3)"/><rect x="180" y="44" width="68" height="40" rx="6" fill="#48dbfb18" stroke="#48dbfb" stroke-width="1.2"/><text class="th" x="214" y="58" text-anchor="middle" dominant-baseline="central" fill="#48dbfb">SignalR</text><text class="ts" x="214" y="74" text-anchor="middle" dominant-baseline="central" fill="#6b7494">hub fanout</text><line x1="248" y1="54" x2="278" y2="30" stroke="#6b7494" stroke-width="1" marker-end="url(#r3)"/><line x1="248" y1="64" x2="278" y2="64" stroke="#6b7494" stroke-width="1" marker-end="url(#r3)"/><line x1="248" y1="74" x2="278" y2="98" stroke="#6b7494" stroke-width="1" marker-end="url(#r3)"/><text class="ts" x="298" y="30" fill="#6b7494">2M</text><text class="ts" x="298" y="64" fill="#6b7494">WS</text><text class="ts" x="298" y="98" fill="#6b7494">clients</text></svg>`
+  },
+  {
+    id:4,num:"R05",accent:"#1dd1a1",
+    title:"Responsible Gambling & Self-Exclusion",
+    bullets:["Deposit limits, time limits enforced at API layer","Self-exclusion synced across all states & platforms","Behavioral triggers for intervention messaging"],
+    summary:"FanDuel is legally required to enforce responsible gambling features and can face license revocation for failures. Self-exclusion lists must be checked on every bet, deposit limit enforcement must be atomic and consistent, and behavioral detection must proactively identify at-risk users.",
+    howItWorks:["Self-exclusion check: every bet request validates against a Redis SET of excluded user IDs (O(1) lookup)","Deposit limits enforced via Redis INCR: daily/weekly/monthly counters per user, atomic and race-condition-safe","Cooling-off periods stored in Postgres, cached in Redis with TTL matching the period duration","Behavioral model: tracks session length, loss chasing patterns, late-night activity — generates 'at risk' score","At-risk users: proactive messaging, offer limit-setting tools, notify support team for outreach","Regulatory sync: self-exclusion lists shared across operators via NCPG (National Council on Problem Gambling) APIs"],
+    fanduel:"If a self-excluded player manages to place a bet (even one), FanDuel is in regulatory violation and faces massive fines or license suspension. The exclusion check is the most critical pre-bet validation — it must be synchronous, sub-millisecond, and fault-tolerant. Redis Sentinel or Cluster ensures high availability of the exclusion store.",
+    fanDuelExamples:["State-synced exclusion: NY exclusion synced to NJ operation — same player cannot bet in any licensed state","Deposit limit enforcement: $500/week limit enforced with Redis atomic INCR — impossible to exceed via race condition","Session time alert: 4-hour continuous session triggers popup requiring acknowledgment before continuing","Loss chasing pattern: bet size increase >3x after 5 consecutive losses → responsible gambling prompt injected"],
+    interviewQ:"How do you ensure a self-excluded player can NEVER successfully place a bet at FanDuel, even during a Redis failover?",
+    interviewHint:"Layer the defense: primary check in Redis (fast, 0.5ms). If Redis is unavailable, fall back to Postgres read replica (slower but available). If both unavailable, DENY ALL BETS until the exclusion store is restored — this is a legal requirement, not optional. Discuss Redis Sentinel for HA, regular sync of exclusion list to a local in-memory set as last resort, and circuit breaker pattern on the bet path.",
+    tools:["Redis Sentinel/Cluster","Postgres fallback","Circuit breaker (Polly)","Behavioral ML model","NCPG API integration"],
+    tradeoffs:"Being overly aggressive with RG limits harms revenue. Being too lenient creates regulatory exposure. The bet denial during Redis failover (vs. allow-with-logging) is a hard regulatory requirement — revenue loss is acceptable, compliance violation is not.",
+    diagramSvg:`<svg width="100%" viewBox="0 0 320 130"><defs><marker id="r4" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs><rect x="2" y="50" width="58" height="28" rx="6" fill="#1dd1a118" stroke="#1dd1a1" stroke-width="1.2"/><text class="th" x="31" y="64" text-anchor="middle" dominant-baseline="central" fill="#1dd1a1">Bet req</text><line x1="60" y1="64" x2="82" y2="64" stroke="#1dd1a1" stroke-width="1" marker-end="url(#r4)"/><rect x="82" y="44" width="74" height="40" rx="6" fill="#1e2535" stroke="#3a4060" stroke-width="1"/><text class="th" x="119" y="57" text-anchor="middle" dominant-baseline="central" fill="#8892aa">Exclusion</text><text class="ts" x="119" y="73" text-anchor="middle" dominant-baseline="central" fill="#6b7494">Redis O(1)</text><line x1="156" y1="54" x2="180" y2="28" stroke="#4ade80" stroke-width="1" marker-end="url(#r4)"/><line x1="156" y1="74" x2="180" y2="100" stroke="#ff6b6b" stroke-width="1" stroke-dasharray="3 2" marker-end="url(#r4)"/><rect x="180" y="14" width="86" height="24" rx="5" fill="#4ade8018" stroke="#4ade80" stroke-width="1"/><text class="ts" x="223" y="26" text-anchor="middle" dominant-baseline="central" fill="#4ade80">Continue pipeline</text><rect x="180" y="88" width="86" height="24" rx="5" fill="#ff6b6b18" stroke="#ff6b6b" stroke-width="1"/><text class="ts" x="223" y="100" text-anchor="middle" dominant-baseline="central" fill="#ff6b6b">HARD REJECT</text><text class="ts" x="164" y="46" fill="#4ade80">clear</text><text class="ts" x="152" y="92" fill="#ff6b6b">excluded</text></svg>`
+  },
+  {
+    id:5,num:"R06",accent:"#c56ef3",
+    title:"Bet Acceptance Pipeline & Validation Chain",
+    bullets:["Sequential guards: auth → RG → fraud → liability","Any guard failure rejects with specific error code","Sub-50ms total pipeline latency requirement"],
+    summary:"Every bet request passes through a validation pipeline before acceptance. Each step is a guard that can reject the bet with a specific reason code. The pipeline is implemented as a chain of responsibility in .NET — each handler checks one concern and passes to the next if valid.",
+    howItWorks:["Pipeline steps in order: 1) Auth (JWT validation), 2) Self-exclusion check, 3) Deposit limit check, 4) Bet slip validation (valid market, valid selection), 5) Odds validation (current odds match request odds ±tolerance), 6) Stake limits (min/max per bet), 7) Sharp profiling, 8) Liability check, 9) Balance debit (idempotent), 10) Bet record write","Each step implemented as an IPipelineBehavior (MediatR) or middleware handler in .NET","Timeout budget: entire pipeline must complete in <50ms — each step has a budget (auth 2ms, Redis checks 3ms each)","Failed bets return structured error: {code: 'ODDS_CHANGED', message: '...', newOdds: 2.10}","Idempotency key on every request prevents double-acceptance on client retry"],
+    fanduel:"At 500k bets/minute, each pipeline step that adds 1ms of latency costs 500ms of total latency per second. The pipeline must be ruthlessly optimized: parallel execution of independent steps (sharp check and liability check run concurrently), Redis for all state reads (no synchronous DB reads in the hot path), and async writes after the synchronous acceptance path.",
+    fanDuelExamples:["Odds drift: if odds moved by >2% between bet submission and acceptance, reject with ODDS_CHANGED + new odds","Balance check: Redis DECRBY stake — if result <0, INCRBY to restore and reject with INSUFFICIENT_FUNDS","Idempotency: idempotency key in header — if same key seen in Redis, return the previous result (no re-processing)","Parlay validation: each leg validated independently, then combined liability checked against parlay-specific limits"],
+    interviewQ:"Walk me through the bet acceptance pipeline you would build for FanDuel using .NET Core. How do you achieve <50ms P99 latency?",
+    interviewHint:"Describe a MediatR pipeline with IPipelineBehavior handlers. Run independent checks (sharp scoring, liability) concurrently using Task.WhenAll. Use Redis for all hot-path state (no DB reads). Write to DB async after sync acceptance. Add distributed tracing (OpenTelemetry) on every step. Set aggressive timeouts per step with Polly TimeoutPolicy. Pre-warm connection pools to avoid cold-start latency.",
+    tools:["MediatR pipeline","Polly resilience","OpenTelemetry","Redis pipelining","C# Task.WhenAll"],
+    tradeoffs:"Pipeline depth adds latency. Running steps in parallel introduces complexity around partial failure (if liability check succeeds but balance debit fails, must rollback). Idempotency keys in Redis must have appropriate TTL — too short allows double-processing, too long bloats Redis memory.",
+    diagramSvg:`<svg width="100%" viewBox="0 0 320 130"><defs><marker id="r5" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs><rect x="2" y="50" width="44" height="28" rx="5" fill="#c56ef322" stroke="#c56ef3" stroke-width="1.2"/><text class="ts" x="24" y="64" text-anchor="middle" dominant-baseline="central" fill="#c56ef3">Bet</text><line x1="46" y1="64" x2="60" y2="64" stroke="#c56ef3" stroke-width="1" marker-end="url(#r5)"/><rect x="60" y="52" width="36" height="24" rx="4" fill="#1e2535" stroke="#3a4060" stroke-width="1"/><text class="ts" x="78" y="64" text-anchor="middle" dominant-baseline="central" fill="#8892aa">Auth</text><line x1="96" y1="64" x2="106" y2="64" stroke="#6b7494" stroke-width="1" marker-end="url(#r5)"/><rect x="106" y="52" width="30" height="24" rx="4" fill="#1dd1a118" stroke="#1dd1a1" stroke-width="1"/><text class="ts" x="121" y="64" text-anchor="middle" dominant-baseline="central" fill="#1dd1a1">RG</text><line x1="136" y1="64" x2="146" y2="64" stroke="#6b7494" stroke-width="1" marker-end="url(#r5)"/><rect x="146" y="52" width="36" height="24" rx="4" fill="#ff9f4318" stroke="#ff9f43" stroke-width="1"/><text class="ts" x="164" y="64" text-anchor="middle" dominant-baseline="central" fill="#ff9f43">Liab</text><line x1="182" y1="64" x2="192" y2="64" stroke="#6b7494" stroke-width="1" marker-end="url(#r5)"/><rect x="192" y="52" width="36" height="24" rx="4" fill="#48dbfb18" stroke="#48dbfb" stroke-width="1"/><text class="ts" x="210" y="64" text-anchor="middle" dominant-baseline="central" fill="#48dbfb">Bal</text><line x1="228" y1="64" x2="238" y2="64" stroke="#6b7494" stroke-width="1" marker-end="url(#r5)"/><rect x="238" y="50" width="46" height="28" rx="5" fill="#4ade8018" stroke="#4ade80" stroke-width="1.2"/><text class="ts" x="261" y="64" text-anchor="middle" dominant-baseline="central" fill="#4ade80">ACCEPT</text><text class="ts" x="120" y="96" text-anchor="middle" fill="#ff6b6b">any step fails → reject with code</text><path d="M78 76 Q78 108 120 108" fill="none" stroke="#ff6b6b" stroke-width="1" stroke-dasharray="3 2"/><path d="M164 76 Q164 108 120 108" fill="none" stroke="#ff6b6b" stroke-width="1" stroke-dasharray="3 2" marker-end="url(#r5)"/></svg>`
+  },
+];
+
+const DOTNET = [
+  {
+    id:6,num:"D01",accent:"#00b4d8",
+    title:"Clean Architecture in .NET Core",
+    bullets:["Domain → Application → Infrastructure → API layers","Domain models never reference EF or HTTP","Dependency inversion: interfaces in application layer"],
+    summary:"FanDuel's .NET Core services follow Clean Architecture (Onion Architecture) — the Domain layer contains business rules (bet validation, liability calculation), Application layer contains use cases (PlaceBet, SettleBet), Infrastructure contains EF Core, Kafka clients, and Redis — all depending inward, never outward.",
+    howItWorks:["Domain layer: pure C# — Bet, Market, User aggregates with invariants enforced in constructors","Application layer: use cases as CQRS commands/queries (MediatR), IRepository interfaces, domain events","Infrastructure layer: EF Core implementations, Kafka producers/consumers, Redis cache, HTTP clients","API layer: ASP.NET Core controllers or minimal APIs — thin, just maps HTTP to MediatR commands","Dependency injection via Microsoft.Extensions.DependencyInjection — each layer registers its own services","Domain events: raised within aggregate, dispatched after successful DB save via MediatR notifications"],
+    fanduel:"The BetPlacement domain aggregate enforces all bet invariants (minimum stake, valid selection, market must be open) before any infrastructure is touched. This means business logic is unit-testable without a database, a Redis instance, or a Kafka broker — critical for a team of 50+ engineers working on the same codebase.",
+    fanDuelExamples:[
+      "PlaceBetCommand → PlaceBetCommandHandler → BetAggregate.Place() → BetRepository.SaveAsync() → BetPlacedEvent dispatched",
+      "ILiabilityRepository (application layer interface) → RedisLiabilityRepository (infrastructure implementation)",
+      "Domain invariant: Bet.Create() throws BetValidationException if stake < minimumStake or market is suspended",
+      "EF Core: BetDbContext configured in Infrastructure, never referenced from Domain or Application"
+    ],
+    interviewQ:"How would you structure the .NET Core service that handles bet placement at FanDuel using Clean Architecture?",
+    interviewHint:"Describe the four layers and their dependencies. Show PlaceBetCommand flowing through MediatR to PlaceBetCommandHandler, which calls BetService (domain), saves via IBetRepository (interface), dispatches BetPlacedDomainEvent via MediatR notification. Infrastructure registers all concrete implementations. Emphasize: controllers are thin, domain is rich, no business logic in controllers or EF entities.",
+    tools:["MediatR","EF Core","Autofac / MS DI","FluentValidation","Domain events"],
+    tradeoffs:"Clean Architecture adds indirection (interfaces everywhere) which some teams find excessive for simple CRUD. The benefit is testability and changeability — swapping Redis for Memcached only requires changing one Infrastructure class. Over-engineering risk: not every microservice needs full Clean Architecture.",
+    diagramSvg:`<svg width="100%" viewBox="0 0 320 130"><defs><marker id="d0" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs><rect x="120" y="44" width="78" height="40" rx="8" fill="#00b4d822" stroke="#00b4d8" stroke-width="1.4"/><text class="th" x="159" y="62" text-anchor="middle" dominant-baseline="central" fill="#00b4d8">Domain</text><text class="ts" x="159" y="78" text-anchor="middle" dominant-baseline="central" fill="#6b7494">pure C#</text><rect x="84" y="28" width="150" height="72" rx="10" fill="none" stroke="#48dbfb66" stroke-width="1" stroke-dasharray="4 3"/><text class="ts" x="84" y="22" fill="#48dbfb88">Application</text><rect x="46" y="12" width="226" height="104" rx="12" fill="none" stroke="#c56ef366" stroke-width="1" stroke-dasharray="4 3"/><text class="ts" x="46" y="6" fill="#c56ef388">Infrastructure</text><rect x="8" y="2" width="302" height="124" rx="14" fill="none" stroke="#6b749466" stroke-width="1" stroke-dasharray="4 3"/><text class="ts" x="8" y="128" fill="#6b7494">API</text><line x1="200" y1="42" x2="230" y2="26" stroke="#c56ef366" stroke-width="1" stroke-dasharray="3 2" marker-end="url(#d0)"/><text class="ts" x="240" y="24" fill="#c56ef388">depends in</text></svg>`,
+    codeSnippet:`<span class="cmt">// Domain Layer — pure business logic</span>
+<span class="kw">public class</span> <span class="cls">Bet</span>
+{
+    <span class="kw">public</span> <span class="cls">BetId</span> Id { <span class="kw">get</span>; <span class="kw">private set</span>; }
+    <span class="kw">public</span> <span class="cls">Money</span> Stake { <span class="kw">get</span>; <span class="kw">private set</span>; }
+    <span class="kw">public</span> <span class="cls">BetStatus</span> Status { <span class="kw">get</span>; <span class="kw">private set</span>; }
+
+    <span class="kw">public static</span> <span class="cls">Bet</span> Place(<span class="cls">Market</span> market, <span class="cls">Money</span> stake, <span class="cls">Odds</span> odds)
+    {
+        <span class="kw">if</span> (market.IsSuspended)
+            <span class="kw">throw new</span> <span class="cls">DomainException</span>(<span class="str">"MARKET_SUSPENDED"</span>);
+        <span class="kw">if</span> (stake &lt; <span class="cls">Money</span>.MinStake)
+            <span class="kw">throw new</span> <span class="cls">DomainException</span>(<span class="str">"BELOW_MIN_STAKE"</span>);
+        <span class="kw">return new</span> <span class="cls">Bet</span>(market.Id, stake, odds);
+    }
+}`
+  },
+  {
+    id:7,num:"D02",accent:"#48dbfb",
+    title:"CQRS with MediatR — Commands & Queries",
+    bullets:["Separate read models from write models","Commands mutate state, queries return data","MediatR decouples handlers from callers"],
+    summary:"CQRS (Command Query Responsibility Segregation) separates the write path (commands: PlaceBet, SettleBet) from the read path (queries: GetBetHistory, GetLeaderboard). Commands go through the full domain validation pipeline. Queries can bypass the domain and read directly from optimized read models (denormalized views in Postgres, Redis, or Elasticsearch).",
+    howItWorks:["Commands: PlaceBetCommand → PlaceBetCommandHandler → domain validation → write to Postgres → publish domain event","Queries: GetUserBetsQuery → GetUserBetsQueryHandler → read directly from Postgres read model (no EF, just Dapper)","MediatR dispatches commands/queries via IoC — controller just sends to IMediator","Pipeline behaviors (IPipelineBehavior<T,R>) for cross-cutting: logging, validation, performance metrics on every command","Read models can be separate tables updated by event handlers — optimized for query patterns","CQRS enables separate scaling: read replicas for queries, single primary for commands"],
+    fanduel:"Bet history queries (GET /users/{id}/bets) are 10x more frequent than bet placements. With CQRS, the query handler reads from a denormalized 'user_bets' table (or Redis cache) updated by event handlers — no complex joins, sub-millisecond response. The write path (PlaceBet) goes through full domain validation. Separate scaling: read replicas handle 90% of traffic.",
+    fanDuelExamples:[
+      "PlaceBetCommand: dispatched by controller, handled by PlaceBetCommandHandler, returns BetId + acceptedOdds",
+      "GetUserBetsQuery: reads from denormalized Postgres view or Redis cache — never touches the domain layer",
+      "ValidationBehavior: IPipelineBehavior validates all FluentValidation rules before command handler runs",
+      "PerformanceBehavior: logs a warning if any command takes >50ms — alerting for SLA breach"
+    ],
+    interviewQ:"Why would FanDuel use CQRS for the bet service? What problems does it solve?",
+    interviewHint:"Commands (place bet) need strong consistency and full validation — single write path through domain. Queries (bet history, leaderboard) need high throughput and can tolerate slight staleness — reads bypass domain and hit denormalized read models. This allows independent scaling: add read replicas for query load without affecting write path. MediatR makes it easy to add cross-cutting concerns (logging, caching, tracing) via pipeline behaviors without changing handlers.",
+    tools:["MediatR 12","FluentValidation","Dapper (queries)","EF Core (commands)","IPipelineBehavior"],
+    tradeoffs:"CQRS adds complexity — two models to maintain. Read models can become stale if event handlers fail. The eventual consistency between write model and read model must be acceptable for the use case. Not all services need full CQRS — apply where read/write imbalance exists.",
+    diagramSvg:`<svg width="100%" viewBox="0 0 320 130"><defs><marker id="d1" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs><rect x="2" y="50" width="54" height="28" rx="6" fill="#48dbfb22" stroke="#48dbfb" stroke-width="1.2"/><text class="th" x="29" y="64" text-anchor="middle" dominant-baseline="central" fill="#48dbfb">Controller</text><line x1="56" y1="60" x2="76" y2="40" stroke="#48dbfb" stroke-width="1" marker-end="url(#d1)"/><line x1="56" y1="68" x2="76" y2="88" stroke="#48dbfb" stroke-width="1" marker-end="url(#d1)"/><rect x="76" y="26" width="66" height="26" rx="5" fill="#ff9f4320" stroke="#ff9f43" stroke-width="1"/><text class="ts" x="109" y="39" text-anchor="middle" dominant-baseline="central" fill="#ff9f43">Command</text><rect x="76" y="76" width="66" height="26" rx="5" fill="#1dd1a120" stroke="#1dd1a1" stroke-width="1"/><text class="ts" x="109" y="89" text-anchor="middle" dominant-baseline="central" fill="#1dd1a1">Query</text><line x1="142" y1="39" x2="162" y2="39" stroke="#6b7494" stroke-width="1" marker-end="url(#d1)"/><line x1="142" y1="89" x2="162" y2="89" stroke="#6b7494" stroke-width="1" marker-end="url(#d1)"/><rect x="162" y="26" width="72" height="26" rx="5" fill="#1e2535" stroke="#3a4060" stroke-width="1"/><text class="ts" x="198" y="39" text-anchor="middle" dominant-baseline="central" fill="#8892aa">DB Write</text><rect x="162" y="76" width="72" height="26" rx="5" fill="#1e2535" stroke="#3a4060" stroke-width="1"/><text class="ts" x="198" y="89" text-anchor="middle" dominant-baseline="central" fill="#8892aa">Read Model</text><text class="ts" x="240" y="39" fill="#ff9f43"> ✓</text><text class="ts" x="240" y="89" fill="#1dd1a1"> ✓</text></svg>`,
+    codeSnippet:`<span class="cmt">// Command — write path</span>
+<span class="kw">public record</span> <span class="cls">PlaceBetCommand</span>(<span class="cls">Guid</span> UserId, <span class="cls">Guid</span> MarketId, <span class="cls">decimal</span> Stake, <span class="cls">decimal</span> Odds)
+    : <span class="cls">IRequest</span>&lt;<span class="cls">PlaceBetResult</span>&gt;;
+
+<span class="kw">public class</span> <span class="cls">PlaceBetCommandHandler</span> : <span class="cls">IRequestHandler</span>&lt;<span class="cls">PlaceBetCommand</span>, <span class="cls">PlaceBetResult</span>&gt;
+{
+    <span class="kw">public async</span> <span class="cls">Task</span>&lt;<span class="cls">PlaceBetResult</span>&gt; Handle(<span class="cls">PlaceBetCommand</span> cmd, <span class="cls">CancellationToken</span> ct)
+    {
+        <span class="kw">var</span> bet = <span class="cls">Bet</span>.Place(market, cmd.Stake, cmd.Odds);
+        <span class="kw">await</span> _repository.SaveAsync(bet, ct);
+        <span class="kw">await</span> _mediator.Publish(<span class="kw">new</span> <span class="cls">BetPlacedEvent</span>(bet.Id), ct);
+        <span class="kw">return new</span> <span class="cls">PlaceBetResult</span>(bet.Id);
+    }
+}`
+  },
+  {
+    id:8,num:"D03",accent:"#c56ef3",
+    title:"Minimal APIs & High-Performance HTTP",
+    bullets:["Minimal APIs: zero controller overhead","Response compression + MessagePack serialization","Rate limiting middleware via sliding window"],
+    summary:"FanDuel's bet placement API must handle 500k requests/minute with sub-50ms P99 latency. ASP.NET Core Minimal APIs eliminate controller overhead, MessagePack binary serialization cuts payload size vs JSON, and IEndpointFilter middleware handles cross-cutting concerns (auth, rate limiting, idempotency) without reflection-based MVC overhead.",
+    howItWorks:["Minimal API: app.MapPost('/bets', handler) — no controller class, no action filter, minimal allocations","IEndpointFilter pipeline: authentication → rate limit → idempotency check → command dispatch","MessagePack: binary serialization for bet placement (3x smaller, 5x faster than JSON) — client SDK required","Response caching: GET /markets cached with OutputCache, tag-based invalidation when market updates","Rate limiting: SlidingWindowRateLimiter keyed by userId — 100 bets/minute hard limit","Kestrel config: MaxConcurrentConnections, ThreadCount tuned for the server's core count"],
+    fanduel:"The bet placement endpoint is the most performance-critical endpoint in the entire FanDuel stack. Every millisecond of latency directly affects user experience during live in-game betting where odds change every second. Switching from MVC Controllers to Minimal APIs reduced allocations by 40% and improved throughput by 25% on equivalent hardware.",
+    fanDuelExamples:[
+      "MessagePack for bets: payload drops from 400 bytes (JSON) to 130 bytes — significant at 500k req/min",
+      "Rate limiter: 100 bet requests/minute per user keyed by JWT sub claim — prevents scripted bet flooding",
+      "Output cache: /markets/{id}/odds cached for 500ms — serves 95% of requests from cache, 5% hit origin",
+      "Health checks: /health/live and /health/ready registered via AddHealthChecks — Kubernetes readiness probe"
+    ],
+    interviewQ:"How would you optimize the FanDuel bet placement API endpoint to handle 500k requests/minute with <50ms P99?",
+    interviewHint:"Use Minimal APIs to eliminate MVC overhead. Enable MessagePack for the bet placement request/response. Implement the entire validation pipeline using IEndpointFilter (no reflection). Use Task.WhenAll for parallel Redis checks. Configure Kestrel thread pool appropriately. Add .AddResponseCompression() for GET endpoints. Profile with BenchmarkDotNet and dotnet-trace to find allocations, not just CPU.",
+    tools:["Minimal APIs","MessagePack","OutputCache","SlidingWindowRateLimiter","BenchmarkDotNet"],
+    tradeoffs:"Minimal APIs lack some MVC conveniences (no model binding filters, no action filters). MessagePack requires client SDK — not browser-friendly (use JSON for browser clients, MessagePack for mobile SDK and B2B). OutputCache tag invalidation must be explicitly triggered on updates.",
+    diagramSvg:`<svg width="100%" viewBox="0 0 320 130"><defs><marker id="d2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs><rect x="2" y="50" width="52" height="28" rx="6" fill="#c56ef322" stroke="#c56ef3" stroke-width="1.2"/><text class="th" x="28" y="64" text-anchor="middle" dominant-baseline="central" fill="#c56ef3">Request</text><line x1="54" y1="64" x2="72" y2="64" stroke="#c56ef3" stroke-width="1" marker-end="url(#d2)"/><rect x="72" y="50" width="40" height="28" rx="5" fill="#1e2535" stroke="#3a4060" stroke-width="1"/><text class="ts" x="92" y="64" text-anchor="middle" dominant-baseline="central" fill="#8892aa">Auth</text><line x1="112" y1="64" x2="124" y2="64" stroke="#6b7494" stroke-width="1" marker-end="url(#d2)"/><rect x="124" y="50" width="40" height="28" rx="5" fill="#1e2535" stroke="#3a4060" stroke-width="1"/><text class="ts" x="144" y="64" text-anchor="middle" dominant-baseline="central" fill="#8892aa">RateL</text><line x1="164" y1="64" x2="176" y2="64" stroke="#6b7494" stroke-width="1" marker-end="url(#d2)"/><rect x="176" y="50" width="40" height="28" rx="5" fill="#1e2535" stroke="#3a4060" stroke-width="1"/><text class="ts" x="196" y="64" text-anchor="middle" dominant-baseline="central" fill="#8892aa">Idem</text><line x1="216" y1="64" x2="228" y2="64" stroke="#6b7494" stroke-width="1" marker-end="url(#d2)"/><rect x="228" y="50" width="48" height="28" rx="5" fill="#c56ef322" stroke="#c56ef3" stroke-width="1"/><text class="ts" x="252" y="64" text-anchor="middle" dominant-baseline="central" fill="#c56ef3">Handler</text><text class="ts" x="160" y="24" text-anchor="middle" fill="#6b7494">IEndpointFilter chain</text><text class="ts" x="160" y="108" text-anchor="middle" fill="#6b7494">MessagePack binary — 3x smaller than JSON</text></svg>`,
+    codeSnippet:`<span class="cmt">// Minimal API — zero controller overhead</span>
+<span class="kw">var</span> bets = app.MapGroup(<span class="str">"/bets"</span>)
+    .RequireAuthorization()
+    .AddEndpointFilter&lt;<span class="cls">IdempotencyFilter</span>&gt;()
+    .AddEndpointFilter&lt;<span class="cls">RateLimitFilter</span>&gt;();
+
+bets.MapPost(<span class="str">"/"</span>, <span class="kw">async</span> (<span class="cls">PlaceBetRequest</span> req, <span class="cls">IMediator</span> mediator) =>
+{
+    <span class="kw">var</span> result = <span class="kw">await</span> mediator.Send(<span class="kw">new</span> <span class="cls">PlaceBetCommand</span>(req));
+    <span class="kw">return</span> <span class="cls">Results</span>.Ok(result);
+})`
+  },
+  {
+    id:9,num:"D04",accent:"#ffd32a",
+    title:"Outbox Pattern & Reliable Event Publishing",
+    bullets:["Write to DB and outbox in same transaction","Background worker publishes outbox to Kafka","Guarantees at-least-once delivery without 2PC"],
+    summary:"When FanDuel accepts a bet, two things must happen atomically: write the bet to Postgres AND publish BetPlacedEvent to Kafka. Without the Outbox pattern, a crash between the DB write and the Kafka publish means a bet is accepted but downstream services (settlement, leaderboard) never know about it. The Outbox pattern solves this with a single local transaction.",
+    howItWorks:["Bet acceptance: write Bet record AND OutboxMessage {eventType, payload, createdAt} in same EF Core transaction","Background hosted service (OutboxProcessor) polls outbox table every 500ms for unprocessed messages","OutboxProcessor publishes each message to Kafka, then marks it as processed","Idempotency: Kafka consumers must handle duplicate events (message may be published more than once if OutboxProcessor restarts)","Alternatively: use Debezium CDC to tail Postgres WAL and publish changes to Kafka automatically","Outbox cleanup: messages older than 24h and processed=true are deleted by a scheduled job"],
+    fanduel:"If a bet is accepted (money taken from user) but BetPlacedEvent never reaches the settlement service, the bet is never settled — user wins and FanDuel owes money but the books don't balance. This is a financial integrity issue. The Outbox pattern ensures every accepted bet is eventually published to all downstream consumers, even if Kafka is temporarily unavailable during the write.",
+    fanDuelExamples:[
+      "Same EF transaction: context.Bets.Add(bet) + context.OutboxMessages.Add(new OutboxMessage(betPlacedEvent))",
+      "OutboxProcessor: IHostedService running every 500ms, publishes batch of up to 100 messages per cycle",
+      "Debezium alternative: CDC tail on bets table publishes every INSERT/UPDATE to Kafka automatically",
+      "Idempotency key: Kafka message key = OutboxMessage.Id — partitioning ensures ordering per key"
+    ],
+    interviewQ:"How do you guarantee that when FanDuel accepts a bet, the BetPlacedEvent is always published to Kafka — even if Kafka is down at the moment of acceptance?",
+    interviewHint:"The Outbox pattern. Write bet + outbox record in same local DB transaction. A separate background process reads the outbox and publishes to Kafka. If Kafka is down, outbox accumulates — messages are published when Kafka recovers. No 2PC, no distributed transaction. Mention Debezium as an alternative (CDC tailing WAL). Discuss idempotency in consumers since outbox guarantees at-least-once, not exactly-once.",
+    tools:["EF Core transactions","IHostedService","Debezium CDC","Kafka","MassTransit Outbox"],
+    tradeoffs:"Outbox adds polling latency (500ms) between bet acceptance and downstream event processing. DB table growth requires cleanup job. Debezium CDC eliminates polling but adds operational complexity (Kafka Connect cluster). MassTransit has a built-in Outbox implementation that handles most of this automatically.",
+    diagramSvg:`<svg width="100%" viewBox="0 0 320 130"><defs><marker id="d3" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs><rect x="2" y="50" width="52" height="28" rx="6" fill="#ffd32a20" stroke="#ffd32a" stroke-width="1.2"/><text class="th" x="28" y="64" text-anchor="middle" dominant-baseline="central" fill="#ffd32a">Accept bet</text><line x1="54" y1="64" x2="74" y2="64" stroke="#ffd32a" stroke-width="1" marker-end="url(#d3)"/><rect x="74" y="36" width="88" height="56" rx="6" fill="#1e2535" stroke="#3a4060" stroke-width="1.4"/><text class="ts" x="118" y="54" text-anchor="middle" dominant-baseline="central" fill="#8892aa">Postgres TX</text><rect x="84" y="66" width="68" height="18" rx="3" fill="#ffd32a18" stroke="#ffd32a66" stroke-width="0.8"/><text class="ts" x="118" y="75" text-anchor="middle" dominant-baseline="central" fill="#ffd32a88">outbox row</text><rect x="84" y="46" width="68" height="18" rx="3" fill="#4ade8018" stroke="#4ade8066" stroke-width="0.8"/><text class="ts" x="118" y="55" text-anchor="middle" dominant-baseline="central" fill="#4ade8088">bets row</text><text class="ts" x="118" y="100" text-anchor="middle" fill="#6b7494">atomic</text><line x1="162" y1="64" x2="184" y2="64" stroke="#6b7494" stroke-width="1" stroke-dasharray="3 2" marker-end="url(#d3)"/><rect x="184" y="44" width="68" height="40" rx="6" fill="#ff9f4318" stroke="#ff9f43" stroke-width="1"/><text class="ts" x="218" y="58" text-anchor="middle" dominant-baseline="central" fill="#ff9f43">Outbox</text><text class="ts" x="218" y="74" text-anchor="middle" dominant-baseline="central" fill="#6b7494">processor</text><line x1="252" y1="64" x2="272" y2="64" stroke="#6b7494" stroke-width="1" marker-end="url(#d3)"/><rect x="272" y="50" width="44" height="28" rx="5" fill="#ee5a2420" stroke="#ee5a24" stroke-width="1"/><text class="ts" x="294" y="64" text-anchor="middle" dominant-baseline="central" fill="#ee5a24">Kafka</text></svg>`,
+    codeSnippet:`<span class="cmt">// Outbox: atomic bet + event write</span>
+<span class="kw">public async</span> <span class="cls">Task</span>&lt;<span class="cls">BetId</span>&gt; PlaceAsync(<span class="cls">Bet</span> bet, <span class="cls">CancellationToken</span> ct)
+{
+    <span class="kw">await using var</span> tx = <span class="kw">await</span> _ctx.Database.BeginTransactionAsync(ct);
+    <span class="kw">try</span> {
+        _ctx.Bets.Add(bet);
+        _ctx.OutboxMessages.Add(<span class="cls">OutboxMessage</span>.From(<span class="kw">new</span> <span class="cls">BetPlacedEvent</span>(bet)));
+        <span class="kw">await</span> _ctx.SaveChangesAsync(ct);
+        <span class="kw">await</span> tx.CommitAsync(ct);
+        <span class="kw">return</span> bet.Id;
+    } <span class="kw">catch</span> { <span class="kw">await</span> tx.RollbackAsync(ct); <span class="kw">throw</span>; }
+}`
+  },
+  {
+    id:10,num:"D05",accent:"#1dd1a1",
+    title:"Resilience with Polly — Retry, Circuit Breaker, Timeout",
+    bullets:["Retry with exponential backoff on transient failures","Circuit breaker prevents cascading failures","Timeout policy ensures SLA enforcement per dependency"],
+    summary:"Every external dependency in FanDuel's .NET services (Redis, Kafka, Postgres, Sportradar API) can fail. Polly provides composable resilience policies — retry on transient errors, circuit breaker to stop hammering a failing service, and per-dependency timeouts to prevent one slow dependency from consuming all thread pool threads.",
+    howItWorks:["Retry policy: 3 retries with exponential backoff (1s, 2s, 4s) on transient HttpRequestException or SocketException","Circuit breaker: after 5 failures in 10s window, open circuit for 30s — subsequent requests fail fast without calling dependency","Timeout policy: 5s max per HTTP call, 2ms max per Redis call — TimeoutRejectedException thrown if exceeded","Bulkhead isolation: separate semaphore pools for Redis, Postgres, Sportradar — slow Sportradar can't block Redis calls","Polly pipelines: ResiliencePipelineBuilder chains Timeout → Retry → CircuitBreaker in correct order","Hedging: fire a second request if first takes >90th percentile latency — return whichever completes first"],
+    fanduel:"During an NFL game, Sportradar's API might experience latency spikes. Without a circuit breaker, FanDuel's odds service would hang thousands of threads waiting for Sportradar responses, eventually causing the odds service to run out of thread pool threads and become completely unresponsive. The circuit breaker opens, Sportradar calls fail fast, and FanDuel serves the last known odds while the circuit recovers.",
+    fanDuelExamples:[
+      "Redis circuit breaker: 10 failures in 5s → open for 60s → all cache reads fail fast → fall back to DB reads",
+      "Sportradar timeout: 3s max per odds request — if exceeded, serve cached odds and alert trading desk",
+      "Postgres retry: 3 retries with jitter on deadlock exceptions (SqlException 1205) — automatic and transparent",
+      "Bulkhead: max 50 concurrent Sportradar calls — 51st caller rejected immediately, not queued"
+    ],
+    interviewQ:"FanDuel's odds service depends on Sportradar's API. How do you prevent a Sportradar outage from taking down the entire odds service?",
+    interviewHint:"Circuit breaker (Polly) on the Sportradar HTTP client. Timeout policy (3s max per call). Bulkhead to limit concurrent Sportradar calls. Fallback: on circuit open, serve last-known cached odds from Redis and suspend new market creation. Alert trading desk via PagerDuty. Discuss how the Polly pipeline order matters: Timeout wraps Retry (not the reverse), Circuit Breaker wraps both.",
+    tools:["Polly v8","Microsoft.Extensions.Http.Resilience","IHttpClientFactory","Hedging policy","PagerDuty alerts"],
+    tradeoffs:"Aggressive circuit breakers can prevent recovery (too-short wait times). Too-generous retries can amplify load on a struggling dependency. Bulkhead limits must be tuned to actual concurrency patterns — too small causes unnecessary rejections, too large defeats the purpose. Test resilience policies with chaos engineering (Simmy for Polly).",
+    diagramSvg:`<svg width="100%" viewBox="0 0 320 130"><defs><marker id="d4" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs><rect x="2" y="50" width="50" height="28" rx="6" fill="#1dd1a118" stroke="#1dd1a1" stroke-width="1.2"/><text class="th" x="27" y="64" text-anchor="middle" dominant-baseline="central" fill="#1dd1a1">Service</text><line x1="52" y1="64" x2="68" y2="64" stroke="#1dd1a1" stroke-width="1" marker-end="url(#d4)"/><rect x="68" y="50" width="36" height="28" rx="5" fill="#1e2535" stroke="#ffd32a" stroke-width="1"/><text class="ts" x="86" y="64" text-anchor="middle" dominant-baseline="central" fill="#ffd32a">T/O</text><line x1="104" y1="64" x2="116" y2="64" stroke="#6b7494" stroke-width="1" marker-end="url(#d4)"/><rect x="116" y="50" width="36" height="28" rx="5" fill="#1e2535" stroke="#ff9f43" stroke-width="1"/><text class="ts" x="134" y="64" text-anchor="middle" dominant-baseline="central" fill="#ff9f43">Retry</text><line x1="152" y1="64" x2="164" y2="64" stroke="#6b7494" stroke-width="1" marker-end="url(#d4)"/><rect x="164" y="50" width="36" height="28" rx="5" fill="#1e2535" stroke="#ff6b6b" stroke-width="1"/><text class="ts" x="182" y="64" text-anchor="middle" dominant-baseline="central" fill="#ff6b6b">CB</text><line x1="200" y1="58" x2="220" y2="38" stroke="#4ade80" stroke-width="1" marker-end="url(#d4)"/><line x1="200" y1="70" x2="220" y2="90" stroke="#ff6b6b" stroke-width="1" stroke-dasharray="3 2" marker-end="url(#d4)"/><rect x="220" y="24" width="72" height="24" rx="5" fill="#4ade8018" stroke="#4ade80" stroke-width="1"/><text class="ts" x="256" y="36" text-anchor="middle" dominant-baseline="central" fill="#4ade80">Dependency</text><rect x="220" y="78" width="72" height="24" rx="5" fill="#ff6b6b18" stroke="#ff6b6b" stroke-width="1"/><text class="ts" x="256" y="90" text-anchor="middle" dominant-baseline="central" fill="#ff6b6b">Fail fast</text><text class="ts" x="182" y="98" fill="#6b7494">circuit open</text></svg>`
+  },
+  {
+    id:11,num:"D06",accent:"#f368e0",
+    title:"Background Services & Hosted Workers",
+    bullets:["IHostedService for long-running background work","Kafka consumers as hosted services","Graceful shutdown with CancellationToken"],
+    summary:"FanDuel's .NET services have many background workloads: Kafka consumers (settle bets as scores come in), outbox processors, liability recalculation workers, and odds feed processors. All implemented as IHostedService/BackgroundService — managed by the .NET host, started on application start, stopped gracefully on shutdown.",
+    howItWorks:["BackgroundService abstract class: override ExecuteAsync(CancellationToken stoppingToken)","Kafka consumer: loop calling consumer.Consume(stoppingToken) — stops cleanly when stoppingToken is cancelled","Graceful shutdown: SIGTERM triggers host shutdown — IHostedService.StopAsync() called with 30s timeout","Multiple hosted services: each registered independently via AddHostedService<T>() — run concurrently","Worker service template: dedicated .NET worker process (no HTTP server) for pure background processing","Health checks: hosted service reports IsHealthy = false if last successful processing >5min ago — Kubernetes restarts unhealthy pod"],
+    fanduel:"The bet settlement service is a pure .NET Worker process — no HTTP API, just a Kafka consumer that processes BetSettledEvents and updates bet outcomes. It runs as a Kubernetes Deployment with 3 replicas (3 Kafka consumer group members). When a new NFL score event arrives, all 3 replicas race to process their assigned Kafka partitions. Graceful shutdown ensures no in-flight settlement is lost when a pod is terminated.",
+    fanDuelExamples:[
+      "SettlementWorker: Kafka consumer group member, processes BetSettledEvents from 'game-scores' topic",
+      "OutboxProcessor: IHostedService polling every 500ms, publishes max 100 outbox messages per cycle",
+      "OddsRefreshWorker: polls Sportradar API every 30s, updates Redis odds cache, publishes changes to SignalR",
+      "Kubernetes: livenessProbe checks worker health endpoint, restarts pod if no messages processed in 5min"
+    ],
+    interviewQ:"How do you implement a reliable Kafka consumer in .NET Core that gracefully handles pod restarts in Kubernetes?",
+    interviewHint:"Implement as BackgroundService with stoppingToken passed to consumer.Consume(). Use manual offset commit (commitSync=false, auto-commit=false) — commit offset only after successful processing. On shutdown (stoppingToken cancelled), close consumer to trigger partition rebalance. Use Confluent.Kafka with CommitOffsetOnComplete=false. Store processing state to handle redelivery. Discuss the rebalance grace period and how to avoid rebalance storms.",
+    tools:["BackgroundService","Confluent.Kafka","IHostApplicationLifetime","Kubernetes livenessProbe","Polly retry"],
+    tradeoffs:"Multiple hosted services in one process share a thread pool — a CPU-intensive hosted service can starve HTTP request processing. Consider separate worker processes for heavy background work. Manual Kafka offset commits require idempotent processing — every message must be safe to process twice.",
+    diagramSvg:`<svg width="100%" viewBox="0 0 320 130"><defs><marker id="d5" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs><rect x="2" y="50" width="64" height="28" rx="6" fill="#f368e022" stroke="#f368e0" stroke-width="1.2"/><text class="th" x="34" y="64" text-anchor="middle" dominant-baseline="central" fill="#f368e0">.NET Host</text><line x1="66" y1="58" x2="88" y2="32" stroke="#f368e066" stroke-width="1" marker-end="url(#d5)"/><line x1="66" y1="64" x2="88" y2="64" stroke="#f368e066" stroke-width="1" marker-end="url(#d5)"/><line x1="66" y1="70" x2="88" y2="96" stroke="#f368e066" stroke-width="1" marker-end="url(#d5)"/><rect x="88" y="18" width="90" height="26" rx="5" fill="#1e2535" stroke="#3a4060" stroke-width="1"/><text class="ts" x="133" y="31" text-anchor="middle" dominant-baseline="central" fill="#8892aa">KafkaConsumer</text><rect x="88" y="50" width="90" height="26" rx="5" fill="#1e2535" stroke="#3a4060" stroke-width="1"/><text class="ts" x="133" y="63" text-anchor="middle" dominant-baseline="central" fill="#8892aa">OutboxProcessor</text><rect x="88" y="82" width="90" height="26" rx="5" fill="#1e2535" stroke="#3a4060" stroke-width="1"/><text class="ts" x="133" y="95" text-anchor="middle" dominant-baseline="central" fill="#8892aa">OddsRefresher</text><text class="ts" x="220" y="31" fill="#6b7494">CancelToken</text><text class="ts" x="220" y="63" fill="#6b7494">CancelToken</text><text class="ts" x="220" y="95" fill="#6b7494">CancelToken</text><text class="ts" x="133" y="118" text-anchor="middle" fill="#6b7494">SIGTERM → StopAsync(30s)</text></svg>`
+  },
+];
+
+const COMBINED = [
+  {
+    id:12,num:"C01",accent:"#ff6b6b",
+    title:"Bet Settlement Saga Pattern",
+    bullets:["Saga coordinates multi-step distributed transaction","Compensating transactions on failure rollback","Choreography via events vs orchestration via saga class"],
+    summary:"Settling a bet requires coordinating multiple services: update bet status, credit winnings, update leaderboard, send notification. If any step fails, previous steps must be compensated (rolled back). The Saga pattern manages this distributed transaction without 2PC.",
+    howItWorks:["Choreography saga: each service listens for events and publishes the next event — no central coordinator","Orchestration saga: a SagaStateMachine (MassTransit) tracks state and sends commands to each service","Settlement steps: 1) BetSettledEvent → update bet status, 2) WinningsCalculated → credit balance, 3) BalanceCredited → update leaderboard, 4) LeaderboardUpdated → send push notification","Compensation: if BalanceCredited fails, publish CompensateBetSettlement to revert bet status to 'pending'","State machine persists saga state to Postgres — survives pod restarts","Idempotency: each saga step checks if already completed before executing"],
+    fanduel:"When the Eagles score a touchdown in the final seconds, thousands of FanDuel users have open bets that all need to be settled simultaneously. The settlement saga must: credit winnings, update contest leaderboards, and send congratulations notifications — in the correct order, with compensation if any step fails. MassTransit's saga state machine handles this orchestration with full crash recovery.",
+    fanDuelExamples:[
+      "SagaStateMachine: Initial → BetSettled → WinningsCalculated → BalanceCredited → NotificationSent → Completed",
+      "Compensation: if Kafka is down during notification step, saga retries indefinitely — notification is non-financial",
+      "Parallel steps: leaderboard update and notification can run in parallel after balance credit",
+      "Monitoring: saga state visible in dashboard — 'stuck sagas' alert if in same state >5min"
+    ],
+    interviewQ:"How do you coordinate bet settlement across 4 microservices (bet, wallet, leaderboard, notification) in FanDuel without a distributed transaction?",
+    interviewHint:"Describe the Saga pattern — either choreography (event chain) or orchestration (MassTransit SagaStateMachine). Define compensating transactions for each step. Discuss idempotency — settlement saga may be triggered multiple times for the same bet (Kafka at-least-once). Show the state machine transitions. Mention that the notification step can be fire-and-forget (no compensation needed — not financial).",
+    tools:["MassTransit SagaStateMachine","Kafka choreography","Postgres saga store","Idempotency guards","OpenTelemetry traces"],
+    tradeoffs:"Sagas add complexity — debugging a failed saga requires querying saga state store. Choreography is simpler but harder to reason about (implicit flow). Orchestration is explicit but adds a coordinator service. Choose orchestration for complex, long-running flows; choreography for simple event chains.",
+    diagramSvg:`<svg width="100%" viewBox="0 0 320 130"><defs><marker id="c0" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs><rect x="2" y="50" width="54" height="28" rx="6" fill="#ff6b6b22" stroke="#ff6b6b" stroke-width="1.2"/><text class="th" x="29" y="64" text-anchor="middle" dominant-baseline="central" fill="#ff6b6b">Score in</text><line x1="56" y1="64" x2="72" y2="64" stroke="#ff6b6b" stroke-width="1" marker-end="url(#c0)"/><rect x="72" y="50" width="44" height="28" rx="5" fill="#1e2535" stroke="#ff9f43" stroke-width="1"/><text class="ts" x="94" y="64" text-anchor="middle" dominant-baseline="central" fill="#ff9f43">Settle</text><line x1="116" y1="64" x2="130" y2="64" stroke="#6b7494" stroke-width="1" marker-end="url(#c0)"/><rect x="130" y="50" width="44" height="28" rx="5" fill="#1e2535" stroke="#48dbfb" stroke-width="1"/><text class="ts" x="152" y="64" text-anchor="middle" dominant-baseline="central" fill="#48dbfb">Credit</text><line x1="174" y1="60" x2="188" y2="38" stroke="#6b7494" stroke-width="1" marker-end="url(#c0)"/><line x1="174" y1="68" x2="188" y2="90" stroke="#6b7494" stroke-width="1" marker-end="url(#c0)"/><rect x="188" y="24" width="72" height="24" rx="5" fill="#1e2535" stroke="#1dd1a1" stroke-width="1"/><text class="ts" x="224" y="36" text-anchor="middle" dominant-baseline="central" fill="#1dd1a1">Leaderboard</text><rect x="188" y="76" width="72" height="24" rx="5" fill="#1e2535" stroke="#c56ef3" stroke-width="1"/><text class="ts" x="224" y="88" text-anchor="middle" dominant-baseline="central" fill="#c56ef3">Notify</text><path d="M152 78 Q152 112 94 112 Q72 112 72 78" fill="none" stroke="#ff6b6b" stroke-width="1" stroke-dasharray="3 2" marker-end="url(#c0)"/><text class="ts" x="112" y="120" fill="#ff6b6b">compensate</text></svg>`
+  },
+  {
+    id:13,num:"C02",accent:"#00b4d8",
+    title:"Real-Time Leaderboard with Redis Sorted Sets",
+    bullets:["ZADD O(log N) score updates per bet settlement","ZREVRANGE O(log N + M) for top-K leaderboard","Pub/sub to push updates via SignalR"],
+    summary:"FanDuel's contest leaderboards must update in real time as bets settle and push updates to all viewing users. Redis Sorted Sets (ZSET) are the perfect data structure: ZADD updates a user's score in O(log N), ZREVRANGE retrieves the top-K in O(log N + K). A .NET SignalR hub subscribes to Redis pub/sub and pushes changes to connected clients.",
+    howItWorks:["Sorted set key: leaderboard:{contestId} — member: userId, score: fantasyPoints","ZADD leaderboard:{contestId} {newScore} {userId} — O(log N) update per settlement","ZREVRANK leaderboard:{contestId} {userId} — user's current rank in O(log N)","ZREVRANGE leaderboard:{contestId} 0 49 WITHSCORES — top 50 in O(log N + 50)","After each update, publish to Redis channel: leaderboard:{contestId}:updates","SignalR hub subscribed to Redis pub/sub — pushes update to all users in the contest group"],
+    fanduel:"A GPP (large tournament) on FanDuel might have 100k users all watching the leaderboard during Monday Night Football. As each play completes and fantasy points update, 100k users need to see their rank change in near real time. Redis sorted sets make this possible — a single ZADD updates the entire leaderboard data structure, and SignalR fans out the change to 100k connected WebSockets within 500ms.",
+    fanDuelExamples:[
+      "ZADD leaderboard:contest-1234 125.5 user-789 — Patrick Mahomes scores, user moves up",
+      "ZREVRANK leaderboard:contest-1234 user-789 — returns user's rank (0-indexed) in O(log N)",
+      "Pagination: ZREVRANGE leaderboard:1234 100 149 WITHSCORES — ranks 101-150",
+      "Near-me: ZREVRANK + ZREVRANGE around user's rank for 'show users around me' feature"
+    ],
+    interviewQ:"Design FanDuel's real-time leaderboard for a 100k user GPP tournament during Monday Night Football.",
+    interviewHint:"Redis Sorted Sets for the leaderboard data structure (ZADD on each fantasy point update, ZREVRANGE for top-K). SignalR with Redis backplane for real-time push to 100k clients. Batch leaderboard updates during high-frequency scoring (buffer 1s of updates, apply as pipeline). For user's personal rank: ZREVRANK. Discuss sharding for very large tournaments (multiple Redis nodes, each responsible for a rank range).",
+    tools:["Redis ZSET","StackExchange.Redis","SignalR + Redis backplane","Redis pipelining","ZREVRANK"],
+    tradeoffs:"Redis sorted set is in-memory — for a 1M user tournament, each entry (userId + score) takes ~64 bytes = 64MB per leaderboard. Acceptable for Redis but monitor memory. SignalR fan-out to 100k users adds load — use connection grouping by rank bucket to send updates only to users who need to see the change.",
+    diagramSvg:`<svg width="100%" viewBox="0 0 320 130"><defs><marker id="c1" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs><rect x="2" y="50" width="60" height="28" rx="6" fill="#00b4d822" stroke="#00b4d8" stroke-width="1.2"/><text class="th" x="32" y="64" text-anchor="middle" dominant-baseline="central" fill="#00b4d8">Bet settled</text><line x1="62" y1="64" x2="82" y2="64" stroke="#00b4d8" stroke-width="1" marker-end="url(#c1)"/><rect x="82" y="44" width="76" height="40" rx="6" fill="#1e2535" stroke="#3a4060" stroke-width="1.2"/><text class="th" x="120" y="58" text-anchor="middle" dominant-baseline="central" fill="#8892aa">Redis ZSET</text><text class="ts" x="120" y="74" text-anchor="middle" dominant-baseline="central" fill="#6b7494">ZADD score</text><line x1="158" y1="64" x2="178" y2="64" stroke="#6b7494" stroke-width="1" marker-end="url(#c1)"/><rect x="178" y="44" width="68" height="40" rx="6" fill="#48dbfb18" stroke="#48dbfb" stroke-width="1.2"/><text class="th" x="212" y="58" text-anchor="middle" dominant-baseline="central" fill="#48dbfb">SignalR</text><text class="ts" x="212" y="74" text-anchor="middle" dominant-baseline="central" fill="#6b7494">pub/sub push</text><line x1="246" y1="54" x2="268" y2="32" stroke="#6b7494" stroke-width="1" marker-end="url(#c1)"/><line x1="246" y1="64" x2="268" y2="64" stroke="#6b7494" stroke-width="1" marker-end="url(#c1)"/><line x1="246" y1="74" x2="268" y2="96" stroke="#6b7494" stroke-width="1" marker-end="url(#c1)"/><text class="ts" x="290" y="32" fill="#6b7494">100k</text><text class="ts" x="290" y="64" fill="#6b7494">WS</text><text class="ts" x="290" y="96" fill="#6b7494">users</text></svg>`
+  },
+  {
+    id:14,num:"C03",accent:"#ff9f43",
+    title:"Distributed Tracing with OpenTelemetry",
+    bullets:["Trace bet placement across 5+ microservices","Auto-instrumentation for HTTP, EF Core, Redis","Export to Jaeger, Zipkin, or Azure Monitor"],
+    summary:"A single bet placement at FanDuel traverses: API gateway → BetService → RiskEngine → WalletService → LeaderboardService → NotificationService. OpenTelemetry auto-instruments every hop with a shared trace ID, allowing engineers to reconstruct the exact path of any bet and pinpoint which service added latency.",
+    howItWorks:["TraceId generated at API gateway edge, propagated via W3C TraceContext headers across all HTTP calls","Each .NET service instruments: incoming HTTP (auto), outgoing HTTP (auto), EF Core queries (auto), Redis calls (auto), Kafka produce/consume (auto)","Custom spans: wrap critical business logic (LiabilityCheck, SharpScoring) with Activity.Start() to include in trace","Exporter: OTLP exporter sends spans to OpenTelemetry Collector → Jaeger/Tempo for visualization","Sampling: 100% for errors and slow traces (>200ms), 1% for normal traces — reduces storage costs","Baggage: propagate userId, betId as baggage across all services for correlation without log searching"],
+    fanduel:"When a FanDuel engineer gets a PagerDuty alert that bet placement P99 is >200ms, they open Jaeger, filter by duration >200ms, and instantly see which span is the outlier — usually the LiabilityCheck Redis call spiking due to a slow Redis replica. Without distributed tracing, this would require correlating logs across 6 services — taking 30 minutes instead of 30 seconds.",
+    fanDuelExamples:[
+      "End-to-end trace: API (5ms) → Auth (2ms) → RiskEngine (8ms) → LiabilityCheck Redis (45ms spike) → Accept (2ms)",
+      "Custom span: using var span = ActivitySource.StartActivity('LiabilityCheck') — appears as named span in Jaeger",
+      "Error traces: 100% sampled — every bet rejection has a full trace for debugging",
+      "SLA dashboard: P50/P99 latency by service from trace data — no need for separate metrics instrumentation"
+    ],
+    interviewQ:"How do you debug a P99 latency spike in the FanDuel bet placement pipeline that spans 6 microservices?",
+    interviewHint:"OpenTelemetry distributed tracing. TraceId propagated via W3C TraceContext headers. Each service auto-instruments HTTP, EF, Redis, Kafka. Custom Activity spans on critical business logic. Span data exported to Jaeger. Filter by slow traces to identify the bottleneck span. Mention that this replaces manual log correlation — a trace shows the entire request path in one view.",
+    tools:["OpenTelemetry .NET","Jaeger / Tempo","OTLP exporter","W3C TraceContext","Azure Monitor"],
+    tradeoffs:"100% trace sampling is expensive at 500k req/min — use tail-based sampling (sample based on trace outcome/duration, not upfront). Context propagation adds overhead to every HTTP header. Auto-instrumentation for EF Core includes SQL queries in traces — be careful about PII in query parameters.",
+    diagramSvg:`<svg width="100%" viewBox="0 0 320 130"><defs><marker id="c2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs><rect x="2" y="14" width="52" height="20" rx="4" fill="#ff9f4320" stroke="#ff9f43" stroke-width="1"/><text class="ts" x="28" y="24" text-anchor="middle" dominant-baseline="central" fill="#ff9f43">API 5ms</text><rect x="2" y="40" width="80" height="20" rx="4" fill="#48dbfb20" stroke="#48dbfb" stroke-width="1"/><text class="ts" x="42" y="50" text-anchor="middle" dominant-baseline="central" fill="#48dbfb">BetSvc 12ms</text><rect x="2" y="66" width="60" height="20" rx="4" fill="#c56ef320" stroke="#c56ef3" stroke-width="1"/><text class="ts" x="32" y="76" text-anchor="middle" dominant-baseline="central" fill="#c56ef3">Risk 8ms</text><rect x="2" y="92" width="120" height="20" rx="4" fill="#ff6b6b20" stroke="#ff6b6b" stroke-width="1.5"/><text class="ts" x="62" y="102" text-anchor="middle" dominant-baseline="central" fill="#ff6b6b">LiabilityCheck 45ms ⚠</text><rect x="2" y="118" width="40" height="10" rx="3" fill="#4ade8020" stroke="#4ade80" stroke-width="0.8"/><text class="ts" x="22" y="123" text-anchor="middle" dominant-baseline="central" fill="#4ade80">Accept</text><text class="ts" x="200" y="30" text-anchor="middle" fill="#6b7494">TraceId propagated</text><text class="ts" x="200" y="46" text-anchor="middle" fill="#6b7494">across all spans</text><text class="ts" x="200" y="80" fill="#ff6b6b">← bottleneck</text></svg>`
+  },
+  {
+    id:15,num:"C04",accent:"#1dd1a1",
+    title:"API Gateway Pattern with YARP",
+    bullets:["YARP: .NET reverse proxy for API gateway","JWT validation, rate limiting at the edge","Route to downstream services by path/header"],
+    summary:"FanDuel uses YARP (Yet Another Reverse Proxy) as an API gateway — a .NET-native reverse proxy that handles cross-cutting concerns (auth, rate limiting, routing, request/response transformation) before traffic reaches downstream microservices. YARP is fully programmable in C# and integrates natively with .NET middleware.",
+    howItWorks:["YARP configured via appsettings.json or programmatically — routes with path patterns map to clusters","Each cluster has multiple backends with health checks and load balancing (round-robin, random, power-of-two)","Middleware pipeline: JWT validation → rate limiting → routing → transform headers → proxy to backend","Request transforms: add X-FD-UserId header from JWT claims — backends trust this, no need to re-validate JWT","Circuit breaker on cluster: Polly wraps each backend call — unhealthy backends removed from rotation","YARP enables A/B routing: 10% of /bets traffic to new BetService v2, 90% to v1 via weighted routing"],
+    fanduel:"FanDuel's API gateway handles all inbound traffic before it reaches any microservice. JWT validation happens once at the gateway — downstream services receive the user identity via trusted internal headers, eliminating redundant auth in every service. YARP's weighted routing enables canary deployments: deploy new BetService, route 1% of traffic to it, monitor error rate, gradually increase to 100%.",
+    fanDuelExamples:[
+      "Route: /api/bets → BetService cluster (3 backends) with round-robin and health checks",
+      "Transform: extract JWT sub claim → add X-FD-UserId: {userId} header to backend request",
+      "Canary: 5% of POST /bets traffic routed to bet-service-v2 cluster, 95% to bet-service-v1",
+      "Rate limit: 100 requests/minute per userId at gateway — protects all downstream services uniformly"
+    ],
+    interviewQ:"How would you implement an API gateway for FanDuel's microservices using .NET? What does it handle centrally?",
+    interviewHint:"YARP as the reverse proxy. JWT validation at the gateway — extract user ID as trusted internal header. Rate limiting at the gateway (SlidingWindowRateLimiter keyed by userId). Path-based routing to service clusters. Health-check-aware load balancing (unhealthy backends removed). Canary deployments via weighted routing. This removes the need for each microservice to implement auth/rate-limiting independently.",
+    tools:["YARP (Microsoft.ReverseProxy)","ASP.NET Core middleware","Polly on backends","JWT Bearer validation","Weighted routing"],
+    tradeoffs:"API gateway is a SPOF and performance bottleneck — must be deployed as multiple instances behind a cloud load balancer. Adding too much logic to the gateway creates a tight coupling point — keep it thin (auth, routing, rate limiting only). BFF (Backend for Frontend) pattern: separate gateways for web and mobile with different rate limits and transforms.",
+    diagramSvg:`<svg width="100%" viewBox="0 0 320 130"><defs><marker id="c3" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs><rect x="2" y="50" width="50" height="28" rx="6" fill="#1dd1a118" stroke="#1dd1a1" stroke-width="1.2"/><text class="th" x="27" y="64" text-anchor="middle" dominant-baseline="central" fill="#1dd1a1">Client</text><line x1="52" y1="64" x2="72" y2="64" stroke="#1dd1a1" stroke-width="1" marker-end="url(#c3)"/><rect x="72" y="40" width="82" height="48" rx="7" fill="#1dd1a118" stroke="#1dd1a1" stroke-width="1.4"/><text class="th" x="113" y="58" text-anchor="middle" dominant-baseline="central" fill="#1dd1a1">YARP</text><text class="ts" x="113" y="74" text-anchor="middle" dominant-baseline="central" fill="#6b7494">JWT+Rate+Route</text><line x1="154" y1="52" x2="178" y2="28" stroke="#6b7494" stroke-width="1" marker-end="url(#c3)"/><line x1="154" y1="64" x2="178" y2="64" stroke="#6b7494" stroke-width="1" marker-end="url(#c3)"/><line x1="154" y1="76" x2="178" y2="100" stroke="#6b7494" stroke-width="1" marker-end="url(#c3)"/><rect x="178" y="14" width="82" height="26" rx="5" fill="#1e2535" stroke="#3a4060" stroke-width="1"/><text class="ts" x="219" y="27" text-anchor="middle" dominant-baseline="central" fill="#8892aa">BetService</text><rect x="178" y="51" width="82" height="26" rx="5" fill="#1e2535" stroke="#3a4060" stroke-width="1"/><text class="ts" x="219" y="64" text-anchor="middle" dominant-baseline="central" fill="#8892aa">OddsService</text><rect x="178" y="88" width="82" height="26" rx="5" fill="#1e2535" stroke="#3a4060" stroke-width="1"/><text class="ts" x="219" y="101" text-anchor="middle" dominant-baseline="central" fill="#8892aa">UserService</text></svg>`
+  },
+  {
+    id:16,num:"C05",accent:"#c56ef3",
+    title:"Event Sourcing for Bet Audit Trail",
+    bullets:["Append-only event log as source of truth","Replay events to rebuild any point-in-time state","Regulatory audit trail built by design"],
+    summary:"FanDuel is legally required to maintain a complete, tamper-proof audit trail of every bet event. Event Sourcing solves this by design: every state change (BetPlaced, OddsChanged, BetSettled, BetVoided) is an immutable event appended to an event store. Current state is derived by replaying events.",
+    howItWorks:["Event store: append-only table in Postgres (or EventStoreDB) — events are never updated or deleted","Each event: {aggregateId, eventType, payload, timestamp, version} — version enforces optimistic concurrency","Aggregate reconstitution: load all events for a BetId, replay them in order to get current bet state","Projections: read-side models (current bet status, user balance) built by processing the event stream","Snapshots: periodic snapshot of aggregate state (every 100 events) to avoid replaying entire history","Regulatory compliance: complete history is the event log itself — no separate audit table needed"],
+    fanduel:"When a state gaming regulator audits FanDuel, they require a complete record of every bet: when placed, at what odds, when settled, by what calculation. With event sourcing, FanDuel can replay the exact sequence of events for any bet, prove the settlement calculation, and demonstrate that no bet was retroactively modified. This is impossible to fake — the event log is the only source of truth.",
+    fanDuelExamples:[
+      "BetPlaced event: {betId, userId, marketId, selection, stake: 50.00, odds: 2.10, timestamp, version: 1}",
+      "OddsChanged event: even if odds moved after placement, original BetPlaced event preserves original odds",
+      "Replay: to get bet state, apply BetPlaced → OddsLocked → BetSettled in sequence",
+      "Projection: BetProjectionHandler processes events and updates the bets read model in Postgres"
+    ],
+    interviewQ:"A state regulator asks FanDuel to prove that bet #12345 was settled correctly at the correct odds. How does your system respond?",
+    interviewHint:"With event sourcing, replay all events for bet #12345: BetPlaced (odds 2.10, stake $50), OddsLocked (locked odds at bet acceptance), GameResulted (Eagles win), BetSettled (winning = $50 × 2.10 = $105). Every step is immutable and timestamped. Compare with alternative: mutable state with audit log — harder to prove the log wasn't tampered with.",
+    tools:["EventStoreDB / Postgres","MediatR event handlers","Projections / read models","Snapshots","Marten (Postgres event store)"],
+    tradeoffs:"Event sourcing adds complexity — reading current state requires event replay or projections. Eventual consistency between event store and read projections. Schema evolution: handling old event formats when business logic changes. Not needed for every domain — use where audit trail and temporal queries are business requirements.",
+    diagramSvg:`<svg width="100%" viewBox="0 0 320 130"><defs><marker id="c4" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs><rect x="2" y="50" width="52" height="28" rx="6" fill="#c56ef322" stroke="#c56ef3" stroke-width="1.2"/><text class="th" x="28" y="64" text-anchor="middle" dominant-baseline="central" fill="#c56ef3">Command</text><line x1="54" y1="64" x2="72" y2="64" stroke="#c56ef3" stroke-width="1" marker-end="url(#c4)"/><rect x="72" y="36" width="130" height="56" rx="6" fill="#1e2535" stroke="#3a4060" stroke-width="1.2"/><text class="ts" x="94" y="52" text-anchor="middle" dominant-baseline="central" fill="#c56ef388">BetPlaced</text><text class="ts" x="137" y="52" text-anchor="middle" dominant-baseline="central" fill="#ff9f4388">OddsLocked</text><text class="ts" x="182" y="52" text-anchor="middle" dominant-baseline="central" fill="#4ade8088">Settled</text><line x1="86" y1="60" x2="118" y2="60" stroke="#3a4060" stroke-width="0.5"/><line x1="130" y1="60" x2="158" y2="60" stroke="#3a4060" stroke-width="0.5"/><text class="ts" x="137" y="78" text-anchor="middle" dominant-baseline="central" fill="#6b7494">event log →</text><line x1="202" y1="55" x2="222" y2="30" stroke="#6b7494" stroke-width="1" marker-end="url(#c4)"/><line x1="202" y1="72" x2="222" y2="96" stroke="#6b7494" stroke-width="1" marker-end="url(#c4)"/><rect x="222" y="16" width="82" height="24" rx="5" fill="#1e2535" stroke="#3a4060" stroke-width="1"/><text class="ts" x="263" y="28" text-anchor="middle" dominant-baseline="central" fill="#8892aa">Projections</text><rect x="222" y="84" width="82" height="24" rx="5" fill="#ffd32a18" stroke="#ffd32a" stroke-width="1"/><text class="ts" x="263" y="96" text-anchor="middle" dominant-baseline="central" fill="#ffd32a">Audit reply</text></svg>`
+  },
+  {
+    id:17,num:"C06",accent:"#ffd32a",
+    title:"Configuration Management & Feature Flags",
+    bullets:["Feature flags for risk limit tuning without deploy","LaunchDarkly / Azure App Config for dynamic config","Gradual rollout: enable sharp detection for 10% users"],
+    summary:"FanDuel's risk thresholds (max liability, sharp bet limits, suspicious activity rules) must be tunable without code deployments. Feature flags and centralized configuration allow the trading desk to adjust risk parameters in real time, and engineering to enable new features gradually via percentage rollout.",
+    howItWorks:["Azure App Configuration: all risk thresholds stored as key-value pairs — updated via portal without deployment","IOptionsMonitor<RiskConfig>: .NET host reloads config on change automatically — no restart required","LaunchDarkly (or Azure Feature Manager): feature flags with targeting rules (userId, state, percentage rollout)","Feature flag example: 'EnableEnhancedSharpDetection' — enable for 10% of users, monitor metrics, ramp to 100%","Kill switch: 'DisableLiabilityCheck' flag — instant rollback if liability engine has a bug (very dangerous, only for emergencies)","Audit log: all config changes logged with actor identity — regulatory requirement for financial systems"],
+    fanduel:"During the Super Bowl, the trading desk wants to lower the max liability threshold from $5M to $2M because volume is so high. Without feature flags, this requires a code deploy (risky during peak load). With Azure App Configuration, the trading desk updates the value in the portal — all bet service instances pick up the new value within 30 seconds via IOptionsMonitor refresh. No deploy, no risk.",
+    fanDuelExamples:[
+      "MaxLiabilityPerMarket: updated from $5M to $2M in Azure App Config — all instances refresh within 30s",
+      "SharpScoreThreshold: flag 'EnableML Sharp v2' rolled out to 10% of users to A/B test accuracy",
+      "State-specific: NJ has different AML thresholds than NY — stored as state-keyed config entries",
+      "Emergency kill switch: 'SuspendAllBetting' flag — can freeze all bet acceptance in <5 seconds if catastrophic bug"
+    ],
+    interviewQ:"The FanDuel trading desk needs to change liability limits during a live Super Bowl without a code deployment. How?",
+    interviewHint:"Azure App Configuration with IOptionsMonitor<RiskConfig> — the service automatically polls for config changes every 30 seconds (or via push via Azure Event Grid). The bet service reads MaxLiabilityPerMarket from IOptionsMonitor (not a static variable) — every bet check uses the current value. Trading desk updates in portal, all instances pick up new value within 30s. No deploy, no restart.",
+    tools:["Azure App Configuration","IOptionsMonitor<T>","LaunchDarkly","Microsoft.FeatureManagement","Azure Event Grid"],
+    tradeoffs:"Dynamic config changes can cause inconsistency between instances during the refresh window (some instances have old value, some have new). For risk-critical thresholds, this window must be minimized. Feature flags proliferate if not cleaned up — dead flags in code become confusion and bugs. Flag changes should require approval workflow for risk-critical parameters.",
+    diagramSvg:`<svg width="100%" viewBox="0 0 320 130"><defs><marker id="c5" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs><rect x="2" y="50" width="72" height="28" rx="6" fill="#ffd32a20" stroke="#ffd32a" stroke-width="1.2"/><text class="th" x="38" y="64" text-anchor="middle" dominant-baseline="central" fill="#ffd32a">Trading desk</text><line x1="74" y1="64" x2="96" y2="64" stroke="#ffd32a" stroke-width="1" marker-end="url(#c5)"/><rect x="96" y="44" width="82" height="40" rx="6" fill="#1e2535" stroke="#3a4060" stroke-width="1.2"/><text class="th" x="137" y="58" text-anchor="middle" dominant-baseline="central" fill="#8892aa">Azure App</text><text class="ts" x="137" y="74" text-anchor="middle" dominant-baseline="central" fill="#6b7494">Config</text><line x1="178" y1="54" x2="198" y2="30" stroke="#6b7494" stroke-width="1" stroke-dasharray="3 2" marker-end="url(#c5)"/><line x1="178" y1="64" x2="198" y2="64" stroke="#6b7494" stroke-width="1" stroke-dasharray="3 2" marker-end="url(#c5)"/><line x1="178" y1="74" x2="198" y2="98" stroke="#6b7494" stroke-width="1" stroke-dasharray="3 2" marker-end="url(#c5)"/><rect x="198" y="16" width="80" height="24" rx="5" fill="#48dbfb18" stroke="#48dbfb" stroke-width="1"/><text class="ts" x="238" y="28" text-anchor="middle" dominant-baseline="central" fill="#48dbfb">BetSvc pod 1</text><rect x="198" y="51" width="80" height="24" rx="5" fill="#48dbfb18" stroke="#48dbfb" stroke-width="1"/><text class="ts" x="238" y="63" text-anchor="middle" dominant-baseline="central" fill="#48dbfb">BetSvc pod 2</text><rect x="198" y="86" width="80" height="24" rx="5" fill="#48dbfb18" stroke="#48dbfb" stroke-width="1"/><text class="ts" x="238" y="98" text-anchor="middle" dominant-baseline="central" fill="#48dbfb">BetSvc pod 3</text><text class="ts" x="137" y="102" text-anchor="middle" fill="#ffd32a">refresh &lt;30s</text></svg>`
+  },
+];
+
+const ALL_CONCEPTS = [...RISK, ...DOTNET, ...COMBINED];
+let viewed = new Set();
+let currentTab = 'risk';
+
+function updateProgress() {
+  const pct = Math.round(viewed.size / ALL_CONCEPTS.length * 100);
+  document.getElementById('pbar').style.width = pct + '%';
+  document.getElementById('progress-text').textContent = viewed.size + ' / ' + ALL_CONCEPTS.length + ' reviewed';
+}
+
+function renderCard(c, delay) {
+  return `<div class="concept-card ${viewed.has(c.id)?'viewed':''}" style="--accent:${c.accent};animation-delay:${delay}s" onclick="openDetail(${c.id})">
+    <div class="viewed-badge"></div>
+    <div class="card-body">
+      <div class="card-num">${c.num}</div>
+      <div class="card-title">${c.title}</div>
+      <div class="card-diagram">${c.diagramSvg}</div>
+      <ul class="card-bullets">${c.bullets.map(b=>`<li>${b}</li>`).join('')}</ul>
+    </div>
+  </div>`;
+}
+
+function renderGrids() {
+  document.getElementById('risk-grid').innerHTML = RISK.map((c,i)=>renderCard(c,i*0.04)).join('');
+  document.getElementById('dotnet-grid').innerHTML = DOTNET.map((c,i)=>renderCard(c,i*0.04)).join('');
+  document.getElementById('combined-grid').innerHTML = COMBINED.map((c,i)=>renderCard(c,i*0.04)).join('');
+}
+
+function switchTab(tab, btn) {
+  currentTab = tab;
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('risk-section').classList.toggle('hidden', tab!=='risk');
+  document.getElementById('dotnet-section').classList.toggle('hidden', tab!=='dotnet');
+  document.getElementById('combined-section').classList.toggle('hidden', tab!=='combined');
+}
+
+function openDetail(id) {
+  const c = ALL_CONCEPTS.find(x=>x.id===id);
+  viewed.add(id);
+  updateProgress();
+  renderGrids();
+  document.getElementById('grid-view').style.display = 'none';
+  const dv = document.getElementById('detail-view');
+  dv.classList.add('open');
+
+  const accentStyle = document.getElementById('dac') || document.createElement('style');
+  accentStyle.id = 'dac';
+  accentStyle.textContent = `#detail-content .section-card ul li::before{color:${c.accent}} #detail-content .fanduel-box ul li::before{color:${c.accent}}`;
+  if(!accentStyle.parentNode) document.head.appendChild(accentStyle);
+
+  const codeHtml = c.codeSnippet ? `
+    <div class="section-heading" style="margin-top:20px">Code example</div>
+    <div class="code-block"><pre>${c.codeSnippet}</pre></div>` : '';
+
+  document.getElementById('detail-content').innerHTML = `
+    <div class="detail-header">
+      <div class="detail-num" style="color:${c.accent}">${c.num}</div>
+      <div class="detail-title">${c.title}</div>
+    </div>
+    <div class="detail-diagram" style="border-top-color:${c.accent}">${c.diagramSvg}</div>
+    <div class="fanduel-box" style="border-left-color:${c.accent}">
+      <div class="box-label" style="color:${c.accent}">FanDuel real-world context</div>
+      <p>${c.fanduel}</p>
+      <ul>${c.fanDuelExamples.map(e=>`<li>${e}</li>`).join('')}</ul>
+    </div>
+    <div class="body-grid">
+      <div class="section-card">
+        <h3>How it works</h3>
+        <ul>${c.howItWorks.map(h=>`<li>${h}</li>`).join('')}</ul>
+      </div>
+      <div class="section-card">
+        <h3>Trade-offs to mention</h3>
+        <p style="margin-bottom:14px">${c.tradeoffs}</p>
+        <h3>Tools to name-drop</h3>
+        <div class="tools-row">${c.tools.map(t=>`<span class="tool-badge">${t}</span>`).join('')}</div>
+      </div>
+    </div>
+    ${codeHtml}
+    <div class="interview-q">
+      <div class="q-label">Interview question — FanDuel SWE</div>
+      <div class="question">"${c.interviewQ}"</div>
+      <div class="answer-hint">${c.interviewHint}</div>
+    </div>`;
+
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function closeDetail() {
+  document.getElementById('grid-view').style.display = 'block';
+  document.getElementById('detail-view').classList.remove('open');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+renderGrids();
+</script>
+</body>
+</html>

@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FanDuel SWE — System Design Study Guide</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0e1118;
+  --surface: #161b27;
+  --card: #1a2030;
+  --card-inner: #111520;
+  --border: rgba(255,255,255,0.07);
+  --text: #f0f2ff;
+  --muted: #8892aa;
+  --dim: #4a5270;
+  --mono: 'JetBrains Mono', monospace;
+  --sans: 'DM Sans', sans-serif;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 14px;
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: radial-gradient(circle, rgba(255,255,255,0.025) 1px, transparent 1px);
+  background-size: 32px 32px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.wrap { position: relative; z-index: 1; max-width: 1240px; margin: 0 auto; padding: 0 24px 60px; }
+
+/* HEADER */
+.page-header { text-align: center; padding: 56px 0 48px; }
+.page-eyebrow {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--dim);
+  margin-bottom: 16px;
+}
+.page-title {
+  font-size: clamp(36px, 6vw, 64px);
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: -1.5px;
+  color: var(--text);
+  margin-bottom: 14px;
+}
+.page-title .accent {
+  background: linear-gradient(135deg, #a78bfa, #f472b6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.page-subtitle { color: var(--muted); font-size: 15px; font-weight: 400; }
+.progress-row {
+  display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 24px;
+}
+.progress-label { font-family: var(--mono); font-size: 12px; color: var(--dim); }
+.progress-track { width: 160px; height: 4px; background: rgba(255,255,255,0.08); border-radius: 2px; overflow: hidden; }
+.progress-fill  { height: 100%; border-radius: 2px; background: linear-gradient(90deg, #a78bfa, #f472b6); transition: width 0.4s ease; }
+
+/* GRID */
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+@media (max-width: 1000px) { .card-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 560px)  { .card-grid { grid-template-columns: 1fr; } }
+
+/* CONCEPT CARD — matches screenshot exactly */
+.concept-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-top: 3px solid var(--accent, #888);
+  border-radius: 14px;
+  overflow: hidden;
+  cursor: pointer;
+  position: relative;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  animation: fadeUp 0.4s ease both;
+}
+.concept-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 16px 40px rgba(0,0,0,0.5);
+}
+.concept-card.viewed { box-shadow: 0 0 0 1px var(--accent, #888) inset; }
+
+.viewed-badge {
+  display: none;
+  position: absolute;
+  top: 14px; right: 14px;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: #4ade80;
+  box-shadow: 0 0 6px #4ade80;
+}
+.concept-card.viewed .viewed-badge { display: block; }
+
+.card-body { padding: 18px 18px 16px; }
+
+.card-num {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: var(--accent, #888);
+  margin-bottom: 8px;
+}
+
+.card-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.3;
+  margin-bottom: 14px;
+  min-height: 44px;
+}
+
+/* Diagram inset box — dark bg like in screenshot */
+.card-diagram {
+  background: var(--card-inner);
+  border-radius: 8px;
+  margin-bottom: 14px;
+  border: 1px solid rgba(255,255,255,0.05);
+  overflow: hidden;
+  padding: 10px 6px 8px;
+}
+.card-diagram svg { display: block; width: 100%; height: auto; }
+
+/* Bullet list */
+.card-bullets { list-style: none; padding: 0; }
+.card-bullets li {
+  font-size: 12px;
+  color: var(--muted);
+  padding: 4px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  display: flex;
+  gap: 7px;
+  line-height: 1.45;
+}
+.card-bullets li:last-child { border-bottom: none; }
+.card-bullets li::before {
+  content: '›';
+  color: var(--accent, #888);
+  flex-shrink: 0;
+  font-weight: 700;
+  font-size: 14px;
+  line-height: 1.3;
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* DETAIL VIEW */
+.detail-view { display: none; animation: fadeUp 0.3s ease both; }
+.detail-view.open { display: block; }
+
+.detail-back {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 13px; color: var(--muted); cursor: pointer;
+  padding: 20px 0 0; background: none; border: none;
+  font-family: var(--sans); transition: color 0.15s;
+}
+.detail-back:hover { color: var(--text); }
+
+.detail-header { margin: 18px 0 22px; }
+.detail-num {
+  font-family: var(--mono); font-size: 11px; letter-spacing: 0.14em;
+  color: var(--accent, #888); margin-bottom: 8px;
+}
+.detail-title {
+  font-size: 30px; font-weight: 700; color: var(--text);
+  letter-spacing: -0.5px; line-height: 1.15;
+}
+
+.detail-diagram {
+  background: var(--card-inner);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-top: 3px solid var(--accent, #888);
+  border-radius: 0 0 12px 12px;
+  padding: 20px 16px 16px;
+  margin-bottom: 20px;
+}
+.detail-diagram svg { display: block; width: 100%; height: auto; }
+
+.fanduel-box {
+  background: var(--card);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-left: 3px solid var(--accent, #888);
+  border-radius: 0 12px 12px 0;
+  padding: 18px 20px;
+  margin-bottom: 20px;
+}
+.box-label {
+  font-family: var(--mono); font-size: 10px; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--accent, #888); margin-bottom: 10px;
+}
+.fanduel-box p { font-size: 13.5px; color: var(--muted); line-height: 1.75; margin-bottom: 12px; }
+.fanduel-box ul { list-style: none; padding: 0; }
+.fanduel-box ul li {
+  font-size: 13px; color: var(--muted); padding: 5px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  display: flex; gap: 8px; line-height: 1.5;
+}
+.fanduel-box ul li:last-child { border-bottom: none; }
+.fanduel-box ul li::before { content: '→'; color: var(--accent, #888); flex-shrink: 0; font-weight: 600; }
+
+.body-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+@media (max-width: 680px) { .body-grid { grid-template-columns: 1fr; } }
+
+.section-card { background: var(--card); border: 1px solid rgba(255,255,255,0.07); border-radius: 12px; padding: 18px; }
+.section-card h3 {
+  font-family: var(--mono); font-size: 10px; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--dim); margin-bottom: 12px;
+}
+.section-card p { font-size: 13px; color: var(--muted); line-height: 1.7; }
+.section-card ul { list-style: none; padding: 0; }
+.section-card ul li {
+  font-size: 13px; color: var(--muted); padding: 5px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  display: flex; gap: 8px; line-height: 1.5;
+}
+.section-card ul li:last-child { border-bottom: none; }
+.section-card ul li::before { content: '›'; flex-shrink: 0; font-weight: 700; font-size: 14px; }
+
+.tools-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 12px; }
+.tool-badge {
+  font-family: var(--mono); font-size: 11px; padding: 3px 9px; border-radius: 5px;
+  background: rgba(255,255,255,0.05); color: var(--muted); border: 1px solid rgba(255,255,255,0.08);
+}
+
+.interview-q {
+  background: var(--card); border: 1px solid rgba(255,255,255,0.07);
+  border-top: 3px solid #ffd166; border-radius: 0 0 12px 12px; padding: 18px 20px;
+}
+.q-label {
+  font-family: var(--mono); font-size: 10px; letter-spacing: 0.14em;
+  text-transform: uppercase; color: #ffd166; margin-bottom: 10px;
+}
+.question { font-size: 15px; color: var(--text); font-style: italic; line-height: 1.65; margin-bottom: 14px; }
+.answer-hint { font-size: 13px; color: var(--muted); line-height: 1.7; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 12px; }
+
+svg text { font-family: 'JetBrains Mono', monospace; }
+.t  { font-size: 13px; fill: #e8eaf2; }
+.ts { font-size: 11px; fill: #6b7494; }
+.th { font-size: 13px; fill: #e8eaf2; font-weight: 500; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="page-header">
+    <div class="page-eyebrow">ByteByteGo · System Design Fundamentals</div>
+    <h1 class="page-title">8 Concepts You <span class="accent">Must</span> Know</h1>
+    <p class="page-subtitle">Visual reference for distributed systems design interviews &amp; production architecture</p>
+    <div class="progress-row">
+      <span class="progress-label" id="progress-text">0 / 11 reviewed</span>
+      <div class="progress-track"><div class="progress-fill" id="pbar" style="width:0%"></div></div>
+    </div>
+  </div>
+
+  <div id="grid-view">
+    <div class="card-grid" id="card-grid"></div>
+  </div>
+
+  <div class="detail-view" id="detail-view">
+    <button class="detail-back" onclick="closeDetail()">← Back to all concepts</button>
+    <div id="detail-content"></div>
+  </div>
+
+</div>
+<script>
+const concepts = [
+  {
+    id:0, num:"01 / 11", accent:"#ff6b6b",
+    title:"Use Caching for Faster Reads",
+    bullets:["Check cache first; fall back to DB on miss","Strategies: read-through, write-through, write-back","Tools: Redis, Memcached, CDN edge cache"],
+    summary:"Caching stores frequently-read data in fast memory (RAM) so the system avoids hitting a slower database on every request. On a cache hit the response is returned immediately. On a miss, the system fetches from the DB, returns the result, and populates the cache for next time.",
+    howItWorks:["Client requests data — cache is checked first (read-through)","HIT → return immediately from RAM (~0.1ms vs ~10ms DB)","MISS → query DB, write result to cache, return to client","Eviction policies: LRU, LFU, TTL-based expiration","Invalidation: explicit delete on write, TTL expiry, write-through","Thundering herd: lock or probabilistic expiry on simultaneous misses"],
+    fanduel:"FanDuel serves millions of concurrent users checking live odds, scores, and bet slip data. Every odds update doesn't need a DB hit — Redis caches current lines per game. Player prop pages are cached at the CDN edge. Bet slip state is cached in-session Redis to reduce latency on every keystroke. During peak NFL Sunday traffic, caching is the difference between sub-100ms responses and timeouts.",
+    fanDuelExamples:["Live odds cache: Redis stores current market lines, updated by pub-sub listener when odds change","Session cache: active bet slips live in Redis keyed by user ID, avoiding DB reads per interaction","Contest metadata: leaderboard structure and scoring rules cached aggressively (rarely change)","API response cache: Varnish/CDN edge caches public endpoints like sport schedules"],
+    interviewQ:"Design a system to serve live sports odds to 1M concurrent users.",
+    interviewHint:"Mention Redis as your L1 cache, a pub-sub update pipeline from odds providers, TTL of ~1-2 seconds for live data, cache-aside pattern, and a CDN edge layer for static contest metadata. Highlight cache invalidation strategy when odds shift rapidly — event-driven invalidation beats polling.",
+    tools:["Redis","Memcached","Varnish","CloudFront","DynamoDB DAX"],
+    tradeoffs:"Cache consistency vs freshness. Stale data can cause users to see wrong odds. Solutions: short TTLs, event-driven invalidation on price updates, or cache-aside with versioning. Memory is limited — eviction policy must match access patterns.",
+    diagramSvg:`<svg width="100%" viewBox="0 0 320 130"><defs><marker id="a0" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs><rect x="2" y="50" width="56" height="30" rx="6" fill="#ff6b6b22" stroke="#ff6b6b" stroke-width="1.2"/><text class="th" x="30" y="65" text-anchor="middle" dominant-baseline="central" fill="#ff6b6b">Client</text><line x1="58" y1="65" x2="90" y2="65" stroke="#ff6b6b" stroke-width="1" marker-end="url(#a0)"/><rect x="90" y="45" width="68" height="40" rx="6" fill="#ff9f4322" stroke="#ff9f43" stroke-width="1.2"/><text class="th" x="124" y="58" text-anchor="middle" dominant-baseline="central" fill="#ff9f43">Cache</text><text class="ts" x="124" y="74" text-anchor="middle" dominant-baseline="central" fill="#ff9f43">Redis</text><line x1="158" y1="55" x2="196" y2="35" stroke="#4ade80" stroke-width="1" marker-end="url(#a0)"/><text class="ts" x="178" y="28" text-anchor="middle" fill="#4ade80">HIT</text><rect x="196" y="18" width="62" height="26" rx="5" fill="#4ade8018" stroke="#4ade80" stroke-width="1"/><text class="ts" x="227" y="31" text-anchor="middle" dominant-baseline="central" fill="#4ade80">return fast</text><line x1="158" y1="75" x2="196" y2="95" stroke="#6b7494" stroke-width="1" stroke-dasharray="3 2" marker-end="url(#a0)"/><text class="ts" x="178" y="110" text-anchor="middle" fill="#6b7494">MISS</text><rect x="196" y="82" width="62" height="26" rx="5" fill="#1e2535" stroke="#3a4060" stroke-width="1"/><text class="ts" x="227" y="95" text-anchor="middle" dominant-baseline="central" fill="#8892aa">Database</text><path d="M258 95 Q292 95 292 65 Q292 33 260 30" fill="none" stroke="#3a4060" stroke-width="1" stroke-dasharray="3 2" marker-end="url(#a0)"/></svg>`
+  },
+  {
+    id:1, num:"02 / 11", accent:"#ff9f43",
+    title:"Use Async Writes (Message Queues)",
+    bullets:["Decouple producers from consumers","Prevents overload; retries on failure","Tools: Kafka, RabbitMQ, SQS, Bull"],
+    summary:"Instead of writing to a database synchronously on every user action, the request is placed onto a queue and acknowledged immediately. Worker processes consume from the queue and perform the actual work asynchronously.",
+    howItWorks:["Producer publishes message to queue (Kafka topic / SQS queue)","Client receives immediate 202 Accepted — no blocking on heavy work","Worker pool consumes messages at their own pace, independently scalable","Failed messages retry with exponential backoff automatically","Dead-letter queues catch poison messages for inspection/replay","Consumer groups partition load across multiple worker instances"],
+    fanduel:"When a user places a bet, FanDuel cannot block the HTTP response waiting for balance deduction, risk checks, and downstream settlement to complete. The bet event is published to Kafka. A risk-engine worker consumes it, a ledger worker debits the balance, and a settlement worker processes outcomes — all independently and retryable.",
+    fanDuelExamples:["Bet placement: HTTP returns instantly, Kafka topic carries bet event to risk + ledger workers","Score updates: data-feed listener publishes score events, settlement workers grade open bets","Push notifications: notification topic fans out to iOS/Android delivery workers","Fraud detection: every login/bet emits an event consumed asynchronously by ML fraud models"],
+    interviewQ:"Design the bet placement pipeline for FanDuel handling 500k bets/minute on Super Bowl Sunday.",
+    interviewHint:"Propose Kafka with topics per event type, idempotency keys on bet records to prevent double-processing, consumer groups for each downstream service (risk, ledger, settlement), and a DLQ with alerting for failed bets. Highlight that the user gets instant feedback while heavy processing is decoupled.",
+    tools:["Apache Kafka","RabbitMQ","AWS SQS/SNS","Celery","Bull (Node.js)"],
+    tradeoffs:"At-least-once delivery requires idempotency in consumers. Ordering guarantees may require partitioning by user ID. Eventual consistency means the UI may briefly show a pending state.",
+    diagramSvg:`<svg width="100%" viewBox="0 0 320 130"><defs><marker id="a1" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs><rect x="2" y="48" width="56" height="30" rx="6" fill="#ff9f4322" stroke="#ff9f43" stroke-width="1.2"/><text class="th" x="30" y="63" text-anchor="middle" dominant-baseline="central" fill="#ff9f43">Client</text><line x1="58" y1="63" x2="90" y2="63" stroke="#ff9f43" stroke-width="1" marker-end="url(#a1)"/><rect x="90" y="35" width="80" height="56" rx="6" fill="#ff9f4318" stroke="#ff9f43" stroke-width="1.2"/><text class="th" x="130" y="56" text-anchor="middle" dominant-baseline="central" fill="#ff9f43">Queue</text><text class="ts" x="130" y="74" text-anchor="middle" dominant-baseline="central" fill="#6b7494">Kafka</text><line x1="170" y1="50" x2="204" y2="28" stroke="#6b7494" stroke-width="1" marker-end="url(#a1)"/><line x1="170" y1="63" x2="204" y2="63" stroke="#6b7494" stroke-width="1" marker-end="url(#a1)"/><line x1="170" y1="76" x2="204" y2="98" stroke="#6b7494" stroke-width="1" marker-end="url(#a1)"/><rect x="204" y="14" width="80" height="26" rx="5" fill="#1e2535" stroke="#3a4060" stroke-width="1"/><text class="ts" x="244" y="27" text-anchor="middle" dominant-baseline="central" fill="#8892aa">Risk engine</text><rect x="204" y="50" width="80" height="26" rx="5" fill="#1e2535" stroke="#3a4060" stroke-width="1"/><text class="ts" x="244" y="63" text-anchor="middle" dominant-baseline="central" fill="#8892aa">Ledger</text><rect x="204" y="86" width="80" height="26" rx="5" fill="#1e2535" stroke="#3a4060" stroke-width="1"/><text class="ts" x="244" y="99" text-anchor="middle" dominant-baseline="central" fill="#8892aa">Settlement</text></svg>`
+  },
+  {
+    id:2, num:"03 / 11", accent:"#ee5a24",
+    title:"Use LSM-Tree Database",
+    bullets:["Writes go to in-memory Memtable first","Flushed to disk as immutable SSTables","Used by: Cassandra, RocksDB, LevelDB"],
+    summary:"Log-Structured Merge-tree databases optimize for high write throughput by writing first to an in-memory structure (Memtable) which is then flushed to immutable sorted files on disk (SSTables). Background compaction merges SSTables and keeps read performance acceptable.",
+    howItWorks:["All writes go to in-memory Memtable (WAL to disk for durability)","When Memtable fills, it is flushed to an L0 SSTable on disk","Background compaction merges L0→L1→L2, removing tombstones and duplicates","Reads: check Memtable, then Bloom filters per SSTable, then SSTables by level","Write amplification: one logical write causes multiple physical disk writes","Read amplification: worst case checks many SSTables (Bloom filters mitigate)"],
+    fanduel:"FanDuel's time-series and event-log workloads — bet history, odds change log, user activity streams — are write-heavy append workloads. Cassandra (LSM-tree based) is ideal: each bet event is an append, historical queries are by partition key (user_id, contest_id).",
+    fanDuelExamples:["Bet ledger: Cassandra stores immutable bet records partitioned by user_id + date","Odds history: every price change appended to Cassandra for audit and ML training","User activity log: event-sourced activity stream for fraud detection and personalization","Contest leaderboard snapshots: time-series scores updated rapidly during live contests"],
+    interviewQ:"You need to store 10B bet records with fast writes and historical reads by user. What database and why?",
+    interviewHint:"Recommend Cassandra (LSM-based) for the write path with partition key = user_id and clustering key = timestamp. Explain the write path: Memtable → SSTable. Mention Bloom filters for read efficiency, TWCS compaction strategy for time-series, and that you'd add Redis cache for recent bets.",
+    tools:["Apache Cassandra","RocksDB","LevelDB","ScyllaDB","DynamoDB"],
+    tradeoffs:"Write-optimized but reads can be slower than B-tree indexes for arbitrary queries. Compaction causes I/O spikes. Best for append-heavy key-based lookups — not complex SQL joins or random updates.",
+    diagramSvg:`<svg width="100%" viewBox="0 0 320 130"><defs><marker id="a2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs><rect x="2" y="48" width="52" height="28" rx="5" fill="#ee5a2422" stroke="#ee5a24" stroke-width="1.2"/><text class="th" x="28" y="62" text-anchor="middle" dominant-baseline="central" fill="#ee5a24">Write</text><line x1="54" y1="62" x2="86" y2="62" stroke="#ee5a24" stroke-width="1" marker-end="url(#a2)"/><rect x="86" y="38" width="82" height="48" rx="6" fill="#ff9f4320" stroke="#ff9f43" stroke-width="1.2"/><text class="th" x="127" y="57" text-anchor="middle" dominant-baseline="central" fill="#ff9f43">Memtable</text><text class="ts" x="127" y="74" text-anchor="middle" dominant-baseline="central" fill="#6b7494">in-memory</text><line x1="168" y1="52" x2="200" y2="26" stroke="#6b7494" stroke-width="1" marker-end="url(#a2)"/><text class="ts" x="184" y="20" text-anchor="middle" fill="#6b7494">flush</text><rect x="200" y="12" width="96" height="24" rx="5" fill="#1e2535" stroke="#3a4060" stroke-width="1"/><text class="ts" x="248" y="24" text-anchor="middle" dominant-baseline="central" fill="#8892aa">SSTable L0</text><rect x="200" y="52" width="96" height="24" rx="5" fill="#1e2535" stroke="#3a4060" stroke-width="1"/><text class="ts" x="248" y="64" text-anchor="middle" dominant-baseline="central" fill="#8892aa">SSTable L1</text><rect x="200" y="92" width="96" height="24" rx="5" fill="#1e2535" stroke="#3a4060" stroke-width="1"/><text class="ts" x="248" y="104" text-anchor="middle" dominant-baseline="central" fill="#8892aa">SSTable L2</text><path d="M300 36 Q316 64 300 76" fill="none" stroke="#3a4060" stroke-width="1" stroke-dasharray="3 2" marker-end="url(#a2)"/><path d="M300 76 Q316 104 300 116" fill="none" stroke="#3a4060" stroke-width="1" stroke-dasharray="3 2" marker-end="url(#a2)"/></svg>`
+  },
+  {
+    id:3, num:"04 / 11", accent:"#ffd32a",
+    title:"Implement Redundancy & Failover",
+    bullets:["Active/passive or active/active setups","Health checks trigger automatic promotion","Eliminates single points of failure (SPOF)"],
+    summary:"Redundancy eliminates single points of failure by running duplicate components. Failover is the automatic promotion of a standby instance when the primary fails, ensuring the system continues without manual intervention.",
+    howItWorks:["Active-passive: standby replica promotes on primary failure (lower cost)","Active-active: all nodes serve traffic — any can fail without outage","Health checks / heartbeats detect failure within seconds","Leader election via Raft or Paxos promotes a new primary safely","DNS failover or load balancer health check reroutes traffic automatically","RPO (data loss tolerance) and RTO (recovery time) define your SLA targets"],
+    fanduel:"FanDuel is a real-money gambling platform — downtime during live events directly costs revenue and trust. Every critical service (API gateway, bet engine, odds service, auth) runs in active-active multi-AZ configurations on AWS. Aurora Global for cross-region and Kafka multi-broker ensure no single datacenter failure causes an outage.",
+    fanDuelExamples:["Bet engine: active-active across 2+ AZs — any node can accept a bet","Auth service: multi-region deployment so a region outage doesn't lock users out","Database: Aurora with automatic failover, <30s promotion from replica to primary","Odds feed: dual ingestion from redundant data providers (Sportradar + backup)"],
+    interviewQ:"How would you design the FanDuel bet placement service to achieve 99.99% uptime?",
+    interviewHint:"Discuss active-active across 3 AZs, idempotent APIs with retry-safe bet IDs, Aurora Multi-AZ with <30s failover, circuit breakers to shed load during partial failures, and chaos engineering practices. Mention RTO < 30s and RPO = 0 using synchronous replication.",
+    tools:["AWS Aurora Multi-AZ","Route53 health checks","ZooKeeper","etcd","Consul"],
+    tradeoffs:"Active-active requires conflict resolution for concurrent writes — use idempotency keys. Active-passive has failover latency (30s–2min). Higher redundancy = higher cost. Choose RPO/RTO targets first.",
+    diagramSvg:`<svg width="100%" viewBox="0 0 320 130"><defs><marker id="a3" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs><rect x="2" y="18" width="82" height="34" rx="6" fill="#ffd32a20" stroke="#ffd32a" stroke-width="1.4"/><text class="th" x="43" y="35" text-anchor="middle" dominant-baseline="central" fill="#ffd32a">Primary</text><text class="ts" x="14" y="54" fill="#ff6b6b">✕ fail</text><line x1="43" y1="52" x2="43" y2="82" stroke="#6b7494" stroke-width="1" stroke-dasharray="3 2" marker-end="url(#a3)"/><rect x="2" y="82" width="82" height="34" rx="6" fill="#1e2535" stroke="#3a4060" stroke-width="1"/><text class="th" x="43" y="99" text-anchor="middle" dominant-baseline="central" fill="#8892aa">Standby</text><rect x="116" y="46" width="90" height="32" rx="6" fill="#ffd32a18" stroke="#ffd32a88" stroke-width="1"/><text class="th" x="161" y="62" text-anchor="middle" dominant-baseline="central" fill="#ffd32a">Failover check</text><line x1="84" y1="38" x2="116" y2="56" stroke="#6b7494" stroke-width="1" marker-end="url(#a3)"/><line x1="84" y1="96" x2="116" y2="70" stroke="#6b7494" stroke-width="1" marker-end="url(#a3)"/><rect x="234" y="36" width="80" height="30" rx="6" fill="#ffd32a20" stroke="#ffd32a" stroke-width="1.2"/><text class="th" x="274" y="51" text-anchor="middle" dominant-baseline="central" fill="#ffd32a">Promoted</text><line x1="206" y1="62" x2="234" y2="51" stroke="#ffd32a" stroke-width="1" marker-end="url(#a3)"/></svg>`
+  },
+  {
+    id:4, num:"05 / 11", accent:"#0abde3",
+    title:"Use Load Balancing",
+    bullets:["Distributes traffic across server pool","Algorithms: round-robin, least connections, IP hash","Tools: Nginx, HAProxy, AWS ALB"],
+    summary:"A load balancer distributes incoming traffic across a pool of backend servers. It provides horizontal scalability, hides individual server failures from clients, and enables rolling deployments without downtime.",
+    howItWorks:["Round-robin: distribute requests sequentially across all servers","Least connections: route to server with fewest active connections","IP hash: consistent routing of a client to the same server (session affinity)","Health checks remove unhealthy servers from the pool automatically","Layer 4 (TCP) vs Layer 7 (HTTP) — L7 enables path/header-based routing","SSL termination: decrypt HTTPS at the LB, use HTTP internally for efficiency"],
+    fanduel:"FanDuel's public API endpoints sit behind an Application Load Balancer (ALB) on AWS. During NFL Sunday, traffic spikes 10x. ALBs route by path (/v1/odds → odds cluster, /v1/bets → bet cluster), perform health checks every 10s, and drain connections gracefully during deployments.",
+    fanDuelExamples:["ALB path-based routing: /api/odds → odds service pods, /api/bets → bet pods","WebSocket affinity: live score feed connections pinned via cookie-based stickiness","Blue/green deploys: LB shifts 0%→100% of traffic to new version with instant rollback","Rate limiting at the LB layer before requests hit application servers"],
+    interviewQ:"How do you handle a 10x traffic spike for the Super Bowl on FanDuel?",
+    interviewHint:"Describe an ALB in front of an auto-scaling group, predictive scaling pre-warming instances 2 hours before kickoff, path-based routing to isolate bet service from read-only odds service, and connection draining for zero-downtime deploys.",
+    tools:["AWS ALB/NLB","Nginx","HAProxy","Cloudflare","Envoy"],
+    tradeoffs:"The load balancer itself can become a SPOF — deploy in redundant pairs. Sticky sessions reduce horizontal scalability benefits. L7 LBs add latency overhead vs L4 but enable smarter routing.",
+    diagramSvg:`<svg width="100%" viewBox="0 0 320 130"><defs><marker id="a4" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs><circle cx="30" cy="65" r="22" fill="#0abde322" stroke="#0abde3" stroke-width="1.2"/><text class="ts" x="30" y="62" text-anchor="middle" fill="#0abde3">Client</text><text class="ts" x="30" y="76" text-anchor="middle" fill="#0abde388">req</text><line x1="52" y1="65" x2="84" y2="65" stroke="#0abde3" stroke-width="1" marker-end="url(#a4)"/><rect x="84" y="46" width="60" height="38" rx="6" fill="#0abde322" stroke="#0abde3" stroke-width="1.4"/><text class="th" x="114" y="61" text-anchor="middle" dominant-baseline="central" fill="#0abde3">LB</text><text class="ts" x="114" y="77" text-anchor="middle" dominant-baseline="central" fill="#0abde388">router</text><line x1="144" y1="57" x2="178" y2="28" stroke="#6b7494" stroke-width="1" marker-end="url(#a4)"/><line x1="144" y1="65" x2="178" y2="65" stroke="#6b7494" stroke-width="1" marker-end="url(#a4)"/><line x1="144" y1="73" x2="178" y2="102" stroke="#6b7494" stroke-width="1" marker-end="url(#a4)"/><rect x="178" y="14" width="80" height="26" rx="5" fill="#1e2535" stroke="#3a4060" stroke-width="1"/><text class="ts" x="218" y="27" text-anchor="middle" dominant-baseline="central" fill="#8892aa">Server 1</text><rect x="178" y="52" width="80" height="26" rx="5" fill="#1e2535" stroke="#3a4060" stroke-width="1"/><text class="ts" x="218" y="65" text-anchor="middle" dominant-baseline="central" fill="#8892aa">Server 2</text><rect x="178" y="90" width="80" height="26" rx="5" fill="#1e2535" stroke="#3a4060" stroke-width="1"/><text class="ts" x="218" y="103" text-anchor="middle" dominant-baseline="central" fill="#8892aa">Server 3</text></svg>`
+  },
+  {
+    id:5, num:"06 / 11", accent:"#48dbfb",
+    title:"Use Replication",
+    bullets:["Primary handles writes; replicas serve reads","Sync vs async replication trade-offs","Boosts read throughput & provides redundancy"],
+    summary:"Replication copies data from a primary node to one or more replicas for high availability and read scaling. Trade-offs revolve around replication lag and consistency guarantees.",
+    howItWorks:["Single-leader: one primary accepts all writes, replicates to N followers","Multi-leader: multiple nodes accept writes, sync with each other (conflict risk)","Leaderless (Dynamo-style): any node accepts writes, quorum for consistency","Sync replication: primary waits for replica ACK before confirming write","Async replication: primary confirms immediately, replica catches up","Replication lag: replicas may be seconds behind — reads may serve stale data"],
+    fanduel:"FanDuel's Aurora PostgreSQL primary accepts all writes. 2-3 read replicas serve all read traffic: user balance lookups, contest listings, bet history queries. This offloads ~80% of DB load from the primary. Synchronous replication to one replica ensures RPO=0 for critical bet records.",
+    fanDuelExamples:["Aurora read replicas: all GET /contests, GET /odds, GET /bet-history hit replicas","Sync replica for bet writes: ensures a winning bet's record survives primary failure","Analytics replica: async replica powers BI dashboards without touching the primary","Cross-region replica: Aurora Global for disaster recovery (RPO < 1s, RTO < 1min)"],
+    interviewQ:"Your FanDuel database primary is handling 50k reads/sec and becoming a bottleneck. How do you scale?",
+    interviewHint:"Add read replicas, route all read traffic to replicas via a proxy (PgBouncer/ProxySQL), and add a Redis cache for hot data. Discuss replication lag — bet history might be slightly stale (acceptable) but live balance must be read-your-writes consistent.",
+    tools:["Aurora PostgreSQL","MySQL replication","Cassandra quorum","MongoDB replica sets"],
+    tradeoffs:"Async replication means reads may be stale. Read-your-writes consistency requires routing post-write reads to primary. Multi-leader causes write conflicts requiring application-level resolution.",
+    diagramSvg:`<svg width="100%" viewBox="0 0 320 130"><defs><marker id="a5" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs><rect x="2" y="36" width="86" height="54" rx="7" fill="#48dbfb18" stroke="#48dbfb" stroke-width="1.4"/><text class="th" x="45" y="57" text-anchor="middle" dominant-baseline="central" fill="#48dbfb">Primary</text><text class="ts" x="45" y="76" text-anchor="middle" dominant-baseline="central" fill="#6b7494">writes</text><line x1="88" y1="48" x2="118" y2="28" stroke="#48dbfb66" stroke-width="1" stroke-dasharray="3 2" marker-end="url(#a5)"/><line x1="88" y1="63" x2="118" y2="63" stroke="#48dbfb66" stroke-width="1" stroke-dasharray="3 2" marker-end="url(#a5)"/><line x1="88" y1="78" x2="118" y2="98" stroke="#48dbfb66" stroke-width="1" stroke-dasharray="3 2" marker-end="url(#a5)"/><text class="ts" x="103" y="56" fill="#48dbfb88">sync</text><rect x="118" y="14" width="84" height="26" rx="5" fill="#1e2535" stroke="#48dbfb44" stroke-width="1"/><text class="ts" x="160" y="27" text-anchor="middle" dominant-baseline="central" fill="#8892aa">Replica 1</text><rect x="118" y="50" width="84" height="26" rx="5" fill="#1e2535" stroke="#48dbfb44" stroke-width="1"/><text class="ts" x="160" y="63" text-anchor="middle" dominant-baseline="central" fill="#8892aa">Replica 2</text><rect x="118" y="86" width="84" height="26" rx="5" fill="#1e2535" stroke="#48dbfb44" stroke-width="1"/><text class="ts" x="160" y="99" text-anchor="middle" dominant-baseline="central" fill="#8892aa">Replica 3</text><line x1="202" y1="27" x2="232" y2="27" stroke="#6b7494" stroke-width="1" marker-end="url(#a5)"/><line x1="202" y1="63" x2="232" y2="63" stroke="#6b7494" stroke-width="1" marker-end="url(#a5)"/><line x1="202" y1="99" x2="232" y2="99" stroke="#6b7494" stroke-width="1" marker-end="url(#a5)"/><text class="ts" x="244" y="30" fill="#6b7494">reads</text><text class="ts" x="244" y="66" fill="#6b7494">reads</text><text class="ts" x="244" y="102" fill="#6b7494">reads</text></svg>`
+  },
+  {
+    id:6, num:"07 / 11", accent:"#1dd1a1",
+    title:"Use Proper Indexes",
+    bullets:["B-Tree for range queries; Hash for equality","Speeds reads, slows writes — choose wisely","Composite indexes: order of columns matters"],
+    summary:"Indexes allow the database to find rows without scanning the entire table. A B-tree index turns an O(n) full scan into an O(log n) lookup — often the single biggest performance lever in a database-backed system.",
+    howItWorks:["B-tree index: sorted balanced tree, ideal for range queries and equality","Hash index: O(1) equality lookups only — no range queries possible","Composite index: multiple columns — left-prefix rule (most selective first)","Covering index: all columns needed by query in the index — no heap fetch","Partial index: index a subset of rows (e.g. WHERE status='open') — smaller, faster","Every index adds write overhead — updated on every INSERT, UPDATE, DELETE"],
+    fanduel:"FanDuel's bet table might have 10B rows. Without indexes, finding all open bets for user X is a full scan. With a composite index on (user_id, contest_id, status), the query is O(log n) and returns in milliseconds. For the leaderboard: an index on (contest_id, fantasy_points DESC) makes top-10 lookups instant.",
+    fanDuelExamples:["Bets table: composite index (user_id, created_at DESC) for bet history pagination","Bets table: partial index WHERE status='open' for live bet monitoring (small and fast)","Leaderboard: index (contest_id, fantasy_points DESC) for real-time rankings","Odds table: index (game_id, market_type) for fast odds retrieval by game"],
+    interviewQ:"The query 'show all open bets for user X in the last 7 days' is slow on FanDuel's 5B row bets table. Fix it.",
+    interviewHint:"Add a composite index on (user_id, status, created_at). Explain why status before created_at: equality columns first, range columns last (left-prefix rule). Mention a partial index WHERE status='open' to make it even smaller. Discuss EXPLAIN ANALYZE to verify index usage.",
+    tools:["PostgreSQL indexes","MySQL EXPLAIN","Elasticsearch","Redis sorted sets"],
+    tradeoffs:"Every index adds write overhead and storage. Too many indexes slow down inserts dramatically. Over-indexing is a common production problem. Use slow query logs and EXPLAIN to add indexes surgically.",
+    diagramSvg:`<svg width="100%" viewBox="0 0 320 130"><defs><marker id="a6" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs><rect x="2" y="10" width="90" height="110" rx="7" fill="#1dd1a118" stroke="#1dd1a1" stroke-width="1.2"/><text class="th" x="47" y="30" text-anchor="middle" dominant-baseline="central" fill="#1dd1a1">B-Tree Index</text><rect x="10" y="44" width="24" height="16" rx="3" fill="#1dd1a133"/><text class="ts" x="22" y="52" text-anchor="middle" dominant-baseline="central" fill="#1dd1a1">10</text><rect x="10" y="64" width="24" height="16" rx="3" fill="#1dd1a122"/><text class="ts" x="22" y="72" text-anchor="middle" dominant-baseline="central" fill="#1dd1a188">20</text><rect x="10" y="84" width="24" height="16" rx="3" fill="#1dd1a122"/><text class="ts" x="22" y="92" text-anchor="middle" dominant-baseline="central" fill="#1dd1a188">30</text><circle cx="50" cy="52" r="5" fill="#1dd1a1"/><circle cx="50" cy="72" r="5" fill="#1dd1a188"/><circle cx="50" cy="92" r="5" fill="#1dd1a188"/><line x1="55" y1="52" x2="100" y2="34" stroke="#1dd1a1" stroke-width="1" marker-end="url(#a6)"/><line x1="55" y1="72" x2="100" y2="65" stroke="#1dd1a166" stroke-width="1" marker-end="url(#a6)"/><line x1="55" y1="92" x2="100" y2="96" stroke="#1dd1a166" stroke-width="1" marker-end="url(#a6)"/><rect x="100" y="20" width="84" height="26" rx="5" fill="#1e2535" stroke="#1dd1a166" stroke-width="1"/><text class="ts" x="142" y="33" text-anchor="middle" dominant-baseline="central" fill="#1dd1a1">Record A</text><rect x="100" y="52" width="84" height="26" rx="5" fill="#1e2535" stroke="#3a4060" stroke-width="1"/><text class="ts" x="142" y="65" text-anchor="middle" dominant-baseline="central" fill="#8892aa">Record B</text><rect x="100" y="84" width="84" height="26" rx="5" fill="#1e2535" stroke="#3a4060" stroke-width="1"/><text class="ts" x="142" y="97" text-anchor="middle" dominant-baseline="central" fill="#8892aa">Record C</text><text class="ts" x="212" y="36" fill="#1dd1a1">O(log n)</text><text class="ts" x="212" y="50" fill="#6b7494">w/ index</text><text class="ts" x="212" y="78" fill="#ff6b6b">O(n)</text><text class="ts" x="212" y="92" fill="#6b7494">full scan</text></svg>`
+  },
+  {
+    id:7, num:"08 / 11", accent:"#c56ef3",
+    title:"Use Sharding to Horizontally Scale",
+    bullets:["Split data across nodes by partition key","Consistent hashing minimizes resharding","Watch out for cross-shard joins & hot spots"],
+    summary:"Sharding partitions data across multiple independent database nodes (shards), each responsible for a subset of data. It allows the data tier to scale horizontally beyond what any single machine can handle.",
+    howItWorks:["Partition key (shard key) determines which shard holds each record","Hash sharding: hash(key) % N — even distribution, hard to rebalance","Range sharding: shard by key range — enables range queries, risk of hot shards","Consistent hashing: virtual nodes on a ring — minimizes rebalancing on shard add/remove","Cross-shard queries require scatter-gather across all shards (expensive)","Hot spot problem: popular shard keys overload one shard — add jitter or virtual nodes"],
+    fanduel:"FanDuel's user table with 15M+ users and billions of associated bet records cannot fit on a single DB. Sharding by user_id (consistent hashing) distributes users across N database clusters. Each shard is self-contained: all of user X's bets, balance, and history live on shard hash(user_id) % N.",
+    fanDuelExamples:["User data sharding: user_id → shard via consistent hashing, all user data co-located","Bet records: co-partitioned with user_id so bet queries never cross shards","Contest sharding: contest_id → shard, but global leaderboard queries scatter-gather","Redis cluster: built-in hash-slot sharding for session and odds cache"],
+    interviewQ:"FanDuel has 50M users and the single user database can't keep up. How do you shard it?",
+    interviewHint:"Propose consistent hashing on user_id with 16-32 shards. Explain why user_id: all user data co-located, no cross-shard joins for the hot path. Discuss the contest leaderboard problem (cross-shard aggregation) and mitigation: pre-aggregate in Kafka streams or cache in Redis sorted sets.",
+    tools:["Vitess","Citus (PostgreSQL)","Redis Cluster","Cassandra vnodes","MongoDB sharding"],
+    tradeoffs:"Transactions across shards require distributed 2PC (expensive/fragile). Cross-shard queries become scatter-gather. Rebalancing when adding shards is operationally complex. Changing the shard key later requires a full data migration.",
+    diagramSvg:`<svg width="100%" viewBox="0 0 320 130"><defs><marker id="a7" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs><rect x="2" y="46" width="78" height="34" rx="6" fill="#c56ef322" stroke="#c56ef3" stroke-width="1.2"/><text class="th" x="41" y="60" text-anchor="middle" dominant-baseline="central" fill="#c56ef3">Router</text><text class="ts" x="41" y="76" text-anchor="middle" dominant-baseline="central" fill="#6b7494">hash key</text><line x1="80" y1="56" x2="116" y2="28" stroke="#6b7494" stroke-width="1" marker-end="url(#a7)"/><line x1="80" y1="63" x2="116" y2="63" stroke="#6b7494" stroke-width="1" marker-end="url(#a7)"/><line x1="80" y1="70" x2="116" y2="98" stroke="#6b7494" stroke-width="1" marker-end="url(#a7)"/><rect x="116" y="14" width="100" height="28" rx="6" fill="#c56ef322" stroke="#c56ef3" stroke-width="1.2"/><text class="th" x="166" y="28" text-anchor="middle" dominant-baseline="central" fill="#c56ef3">Shard 0</text><rect x="116" y="50" width="100" height="28" rx="6" fill="#c56ef322" stroke="#c56ef3" stroke-width="1.2"/><text class="th" x="166" y="64" text-anchor="middle" dominant-baseline="central" fill="#c56ef3">Shard 1</text><rect x="116" y="86" width="100" height="28" rx="6" fill="#c56ef322" stroke="#c56ef3" stroke-width="1.2"/><text class="th" x="166" y="100" text-anchor="middle" dominant-baseline="central" fill="#c56ef3">Shard 2</text><text class="ts" x="228" y="28" fill="#6b7494"> 0-33%</text><text class="ts" x="228" y="64" fill="#6b7494"> 33-66%</text><text class="ts" x="228" y="100" fill="#6b7494"> 67-100%</text></svg>`
+  },
+  {
+    id:8, num:"09 / 11", accent:"#f368e0",
+    title:"Use Centralized Logging (ELK Stack)",
+    bullets:["Aggregate logs from all services centrally","ELK: Logstash → Elasticsearch → Kibana","Enables search, alerting, and dashboards"],
+    summary:"In a distributed system, logs from hundreds of services must be aggregated into a searchable central store. The ELK stack (Elasticsearch, Logstash, Kibana) is the standard approach for centralized logging.",
+    howItWorks:["Each service writes structured JSON logs to stdout","A log shipper (Fluentd, Filebeat) tails logs and sends to Logstash","Logstash parses, enriches (adds service name, env, trace ID), and forwards","Elasticsearch indexes logs as searchable documents with full-text search","Kibana dashboards query Elasticsearch for real-time monitoring and alerting","Structured logs with trace IDs enable distributed tracing across all services"],
+    fanduel:"When a bet fails silently at 11:15pm on a Sunday, FanDuel engineers need to search 'bet_id=X AND error=true AND service=bet-engine AND timestamp>11pm' across all pods instantly. ELK (or Datadog/Splunk) lets the on-call engineer find root cause in minutes. Trace IDs link a single bet placement across multiple services.",
+    fanDuelExamples:["Bet failure triage: search logs by bet_id across all services in a single Kibana query","Latency dashboards: P99 response time by endpoint, alerting when > 200ms threshold","Fraud signals: structured logs from auth service feed real-time anomaly detection","Deployment canary monitoring: compare error rates between v1 and v2 pods live"],
+    interviewQ:"How do you debug a bet placement failure that happened 10 minutes ago across 5 microservices?",
+    interviewHint:"Describe structured logging with a correlation/trace ID injected at the API gateway. All downstream services log with that ID. Query ELK/Datadog for trace_id=X to reconstruct the full request path. Mention distributed tracing (OpenTelemetry/Jaeger) as a complementary tool.",
+    tools:["Elasticsearch","Logstash","Kibana","Fluentd","Datadog","Splunk","OpenTelemetry"],
+    tradeoffs:"ELK is expensive at scale (Elasticsearch is resource-hungry). Log retention vs cost is a constant tension. High-cardinality fields require careful index mapping. Consider Datadog or Splunk as managed alternatives.",
+    diagramSvg:`<svg width="100%" viewBox="0 0 320 130"><defs><marker id="a8" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs><rect x="2" y="14" width="68" height="24" rx="5" fill="#f368e022" stroke="#f368e0" stroke-width="1"/><text class="ts" x="36" y="26" text-anchor="middle" dominant-baseline="central" fill="#f368e0">Bet svc</text><rect x="2" y="52" width="68" height="24" rx="5" fill="#f368e022" stroke="#f368e0" stroke-width="1"/><text class="ts" x="36" y="64" text-anchor="middle" dominant-baseline="central" fill="#f368e0">Odds svc</text><rect x="2" y="90" width="68" height="24" rx="5" fill="#f368e022" stroke="#f368e0" stroke-width="1"/><text class="ts" x="36" y="102" text-anchor="middle" dominant-baseline="central" fill="#f368e0">Auth svc</text><line x1="70" y1="26" x2="96" y2="55" stroke="#6b7494" stroke-width="1" marker-end="url(#a8)"/><line x1="70" y1="64" x2="96" y2="64" stroke="#6b7494" stroke-width="1" marker-end="url(#a8)"/><line x1="70" y1="102" x2="96" y2="73" stroke="#6b7494" stroke-width="1" marker-end="url(#a8)"/><rect x="96" y="44" width="68" height="40" rx="6" fill="#ff9f4320" stroke="#ff9f43" stroke-width="1.2"/><text class="th" x="130" y="61" text-anchor="middle" dominant-baseline="central" fill="#ff9f43">Logstash</text><text class="ts" x="130" y="77" text-anchor="middle" dominant-baseline="central" fill="#6b7494">parse</text><line x1="164" y1="64" x2="186" y2="64" stroke="#6b7494" stroke-width="1" marker-end="url(#a8)"/><rect x="186" y="44" width="68" height="40" rx="6" fill="#0abde320" stroke="#0abde3" stroke-width="1.2"/><text class="th" x="220" y="61" text-anchor="middle" dominant-baseline="central" fill="#0abde3">Elastic</text><text class="ts" x="220" y="77" text-anchor="middle" dominant-baseline="central" fill="#6b7494">index</text><line x1="254" y1="64" x2="278" y2="64" stroke="#6b7494" stroke-width="1" marker-end="url(#a8)"/><rect x="278" y="48" width="38" height="32" rx="5" fill="#1dd1a118" stroke="#1dd1a1" stroke-width="1"/><text class="ts" x="297" y="64" text-anchor="middle" dominant-baseline="central" fill="#1dd1a1">KIB</text></svg>`
+  },
+  {
+    id:9, num:"10 / 11", accent:"#54a0ff",
+    title:"Use Block & Object Storage",
+    bullets:["Block: low-latency attached volumes (EBS)","Object: flat namespace, infinite scale (S3)","Use S3 for blobs; block storage for DBs"],
+    summary:"Block storage is raw volumes for databases (low latency). Object storage is infinite-scale blob storage via HTTP API. Knowing which to use is a core design skill.",
+    howItWorks:["Block storage: formatted as filesystem, attached to one server at a time (AWS EBS)","Object storage: HTTP PUT/GET API, globally accessible, durably replicated (AWS S3)","S3 now offers strong read-after-write consistency (as of 2020)","Objects are immutable — you replace, not update (good for content-addressable storage)","Object storage has no hierarchy — flat key namespace (prefixes simulate folders)","Block: <1ms latency. Object: 50-100ms latency (network round trip required)"],
+    fanduel:"FanDuel uses S3 for user profile photos, legal documents (KYC scans), contest result exports, ML training data, and static web assets. EBS block volumes back the Aurora PostgreSQL databases where sub-millisecond I/O is critical for the bet engine.",
+    fanDuelExamples:["S3: user KYC document uploads, served via pre-signed URLs (no direct S3 exposure)","S3: historical betting data exports for data science team, partitioned by date","S3: static contest assets (icons, rules PDFs) fronted by CloudFront CDN","EBS gp3: Aurora DB primary data volume, provisioned IOPS for consistent write latency"],
+    interviewQ:"Where do you store user profile images and contest rule PDFs for FanDuel? Walk through the upload and retrieval flow.",
+    interviewHint:"S3 for both. Upload flow: client requests pre-signed S3 URL from API (avoid routing large files through your servers), client uploads directly to S3, API receives S3 event and updates DB record. Retrieval: CloudFront CDN serves from edge, origin is S3.",
+    tools:["AWS S3","AWS EBS","Google Cloud Storage","Cloudflare R2","MinIO"],
+    tradeoffs:"Object storage is not a database — no transactions, no partial updates. Block storage is expensive and doesn't scale horizontally like S3. Never put a database on object storage; never put large blobs in a relational database.",
+    diagramSvg:`<svg width="100%" viewBox="0 0 320 130"><defs><marker id="a9" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs><rect x="2" y="20" width="148" height="88" rx="9" fill="#54a0ff18" stroke="#54a0ff" stroke-width="1.4"/><text class="th" x="76" y="44" text-anchor="middle" dominant-baseline="central" fill="#54a0ff">Object (S3)</text><text class="ts" x="44" y="70" text-anchor="middle" dominant-baseline="central" fill="#6b7494">key→blob</text><text class="ts" x="44" y="86" text-anchor="middle" dominant-baseline="central" fill="#6b7494">∞ scale</text><text class="ts" x="114" y="70" text-anchor="middle" dominant-baseline="central" fill="#6b7494">HTTP API</text><text class="ts" x="114" y="86" text-anchor="middle" dominant-baseline="central" fill="#6b7494">~80ms</text><rect x="170" y="20" width="148" height="88" rx="9" fill="#ff9f4318" stroke="#ff9f43" stroke-width="1.4"/><text class="th" x="244" y="44" text-anchor="middle" dominant-baseline="central" fill="#ff9f43">Block (EBS)</text><text class="ts" x="210" y="70" text-anchor="middle" dominant-baseline="central" fill="#6b7494">raw disk</text><text class="ts" x="210" y="86" text-anchor="middle" dominant-baseline="central" fill="#6b7494">1 attach</text><text class="ts" x="280" y="70" text-anchor="middle" dominant-baseline="central" fill="#6b7494">sub-ms</text><text class="ts" x="280" y="86" text-anchor="middle" dominant-baseline="central" fill="#6b7494">for DBs</text></svg>`
+  },
+  {
+    id:10, num:"11 / 11", accent:"#00d2d3",
+    title:"Use CDN to Reduce Latency",
+    bullets:["Serves static assets from edge nodes near users","DNS routes to nearest point of presence (PoP)","Tools: Cloudflare, CloudFront, Fastly"],
+    summary:"A CDN is a globally distributed network of edge servers that cache content close to users, reducing round-trip time from ~150ms (origin) to ~10ms (edge).",
+    howItWorks:["DNS resolves the CDN domain to the nearest edge PoP (anycast routing)","Edge node checks if the asset is cached (cache hit → serve immediately ~10ms)","On miss, edge fetches from origin, caches response with a TTL","Cache-Control headers and surrogate keys control per-asset TTL","Edge purge APIs allow instant invalidation on content updates","CDNs also provide DDoS protection, TLS termination, and WAF at the edge"],
+    fanduel:"FanDuel's global user base (US, UK, Canada) accesses static assets: JavaScript bundles, CSS, images, contest icons. Without a CDN, a user in London hitting a US origin server experiences 150ms+ latency. Cloudflare/CloudFront serves these from edge nodes <20ms away. Dynamic odds API responses use edge caching with 1s TTL — 90% cache hit rate reduces origin load dramatically.",
+    fanDuelExamples:["Static assets: all JS/CSS/images served from CloudFront, origin is S3, TTL = 1yr (content-hashed URLs)","Odds API: Cloudflare Workers cache odds responses at edge for 1-2 seconds, reducing DB hits by 90%","DDoS protection: Cloudflare absorbs bot traffic before it reaches FanDuel's origin servers","Edge compute: Cloudflare Workers run geolocation-based rules (block restricted states) at the edge"],
+    interviewQ:"How do you deliver the FanDuel web app with <100ms load time to users globally?",
+    interviewHint:"CDN (CloudFront/Cloudflare) for all static assets with content-addressed URLs (long TTLs). Dynamic odds data cached at edge for 1-2s with Stale-While-Revalidate. Critical path HTML served from the nearest region. Mention HTTP/2 multiplexing, Brotli compression, and preloading critical JS chunks.",
+    tools:["Cloudflare","AWS CloudFront","Fastly","Akamai","Cloudflare Workers"],
+    tradeoffs:"Cache invalidation is hard — use content-hashed URLs for immutable assets (TTL=1yr). Dynamic content with short TTLs can still have stale windows. CDN adds cost per GB transferred. Not useful for personalized or real-time content.",
+    diagramSvg:`<svg width="100%" viewBox="0 0 320 130"><defs><marker id="a10" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs><circle cx="26" cy="34" r="18" fill="#00d2d318" stroke="#00d2d3" stroke-width="1.2"/><text class="ts" x="26" y="30" text-anchor="middle" fill="#00d2d3">User</text><text class="ts" x="26" y="44" text-anchor="middle" fill="#00d2d388">UK</text><circle cx="26" cy="96" r="18" fill="#00d2d318" stroke="#00d2d388" stroke-width="1"/><text class="ts" x="26" y="92" text-anchor="middle" fill="#00d2d388">User</text><text class="ts" x="26" y="106" text-anchor="middle" fill="#6b7494">US</text><line x1="44" y1="40" x2="78" y2="56" stroke="#6b7494" stroke-width="1" marker-end="url(#a10)"/><line x1="44" y1="90" x2="78" y2="76" stroke="#6b7494" stroke-width="1" marker-end="url(#a10)"/><rect x="78" y="20" width="88" height="30" rx="6" fill="#00d2d322" stroke="#00d2d3" stroke-width="1.2"/><text class="th" x="122" y="35" text-anchor="middle" dominant-baseline="central" fill="#00d2d3">CDN (LON)</text><rect x="78" y="80" width="88" height="30" rx="6" fill="#00d2d322" stroke="#00d2d3" stroke-width="1.2"/><text class="th" x="122" y="95" text-anchor="middle" dominant-baseline="central" fill="#00d2d3">CDN (NYC)</text><text class="ts" x="122" y="64" text-anchor="middle" fill="#6b7494">~10ms</text><line x1="166" y1="34" x2="200" y2="52" stroke="#6b7494" stroke-width="1" stroke-dasharray="3 2" marker-end="url(#a10)"/><line x1="166" y1="96" x2="200" y2="78" stroke="#6b7494" stroke-width="1" stroke-dasharray="3 2" marker-end="url(#a10)"/><rect x="200" y="44" width="82" height="42" rx="6" fill="#ff6b6b18" stroke="#ff6b6b88" stroke-width="1"/><text class="th" x="241" y="62" text-anchor="middle" dominant-baseline="central" fill="#ff6b6b88">Origin</text><text class="ts" x="241" y="78" text-anchor="middle" dominant-baseline="central" fill="#6b7494">~150ms</text></svg>`
+  }
+];
+
+let viewed = new Set();
+
+function updateProgress() {
+  const pct = Math.round(viewed.size / concepts.length * 100);
+  document.getElementById('pbar').style.width = pct + '%';
+  document.getElementById('progress-text').textContent = viewed.size + ' / ' + concepts.length + ' reviewed';
+}
+
+function renderGrid() {
+  document.getElementById('card-grid').innerHTML = concepts.map((c, i) => `
+    <div class="concept-card ${viewed.has(c.id)?'viewed':''}"
+         style="--accent:${c.accent}; animation-delay:${i*0.04}s"
+         onclick="openDetail(${c.id})">
+      <div class="viewed-badge"></div>
+      <div class="card-body">
+        <div class="card-num">${c.num}</div>
+        <div class="card-title">${c.title}</div>
+        <div class="card-diagram">${c.diagramSvg}</div>
+        <ul class="card-bullets">${c.bullets.map(b=>`<li>${b}</li>`).join('')}</ul>
+      </div>
+    </div>`).join('');
+}
+
+function openDetail(id) {
+  const c = concepts[id];
+  viewed.add(id);
+  updateProgress();
+  renderGrid();
+
+  document.getElementById('grid-view').style.display = 'none';
+  const dv = document.getElementById('detail-view');
+  dv.classList.add('open');
+
+  const accentStyle = document.getElementById('detail-accent-style') || document.createElement('style');
+  accentStyle.id = 'detail-accent-style';
+  accentStyle.textContent = `
+    #detail-content .section-card ul li::before { color: ${c.accent}; }
+    #detail-content .fanduel-box ul li::before  { color: ${c.accent}; }
+  `;
+  if (!accentStyle.parentNode) document.head.appendChild(accentStyle);
+
+  document.getElementById('detail-content').innerHTML = `
+    <div class="detail-header">
+      <div class="detail-num">${c.num}</div>
+      <div class="detail-title">${c.title}</div>
+    </div>
+    <div class="detail-diagram" style="border-top-color:${c.accent}">${c.diagramSvg}</div>
+    <div class="fanduel-box" style="border-left-color:${c.accent}">
+      <div class="box-label" style="color:${c.accent}">FanDuel context</div>
+      <p>${c.fanduel}</p>
+      <ul>${c.fanDuelExamples.map(e=>`<li>${e}</li>`).join('')}</ul>
+    </div>
+    <div class="body-grid">
+      <div class="section-card">
+        <h3>How it works</h3>
+        <ul>${c.howItWorks.map(h=>`<li>${h}</li>`).join('')}</ul>
+      </div>
+      <div class="section-card">
+        <h3>Trade-offs to mention</h3>
+        <p style="margin-bottom:14px">${c.tradeoffs}</p>
+        <h3>Tools to name-drop</h3>
+        <div class="tools-row">${c.tools.map(t=>`<span class="tool-badge">${t}</span>`).join('')}</div>
+      </div>
+    </div>
+    <div class="interview-q">
+      <div class="q-label">Interview question — FanDuel SWE</div>
+      <div class="question">"${c.interviewQ}"</div>
+      <div class="answer-hint">${c.interviewHint}</div>
+    </div>`;
+
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function closeDetail() {
+  document.getElementById('grid-view').style.display = 'block';
+  document.getElementById('detail-view').classList.remove('open');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+renderGrid();
+</script>
+</body>
+</html>
