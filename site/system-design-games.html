@@ -1,0 +1,1101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>System Design Games</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #08111f;
+    --bg2: #111c31;
+    --surface: rgba(10, 18, 34, 0.78);
+    --card: rgba(14, 24, 44, 0.9);
+    --line: rgba(255, 255, 255, 0.1);
+    --text: #edf3ff;
+    --muted: #9fb0d1;
+    --dim: #7083ab;
+    --blue: #68e1fd;
+    --gold: #ffd166;
+    --mint: #7ef0c5;
+    --pink: #f7a8ff;
+    --danger: #ff8fa3;
+    --success: #8ef3b0;
+    --shadow: 0 24px 70px rgba(0, 0, 0, 0.35);
+  }
+
+  body {
+    min-height: 100vh;
+    font-family: "Space Grotesk", sans-serif;
+    color: var(--text);
+    background:
+      radial-gradient(circle at top left, rgba(104, 225, 253, 0.18), transparent 30%),
+      radial-gradient(circle at top right, rgba(255, 209, 102, 0.16), transparent 28%),
+      linear-gradient(160deg, var(--bg), var(--bg2));
+  }
+
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background-image:
+      linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+    background-size: 34px 34px;
+    mask-image: radial-gradient(circle at center, black, transparent 82%);
+  }
+
+  .wrap {
+    width: min(1180px, calc(100% - 28px));
+    margin: 0 auto;
+    padding: 42px 0 72px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .hero {
+    display: grid;
+    grid-template-columns: 1.3fr 0.7fr;
+    gap: 20px;
+    align-items: start;
+    margin-bottom: 22px;
+  }
+
+  .hero-copy,
+  .hero-meta,
+  .tabs,
+  .game-shell,
+  .explain-card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 28px;
+    box-shadow: var(--shadow);
+    backdrop-filter: blur(16px);
+  }
+
+  .hero-copy {
+    padding: 28px;
+  }
+
+  .eyebrow,
+  .mono {
+    font-family: "IBM Plex Mono", monospace;
+  }
+
+  .eyebrow {
+    color: var(--mint);
+    font-size: 12px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+
+  h1 {
+    font-size: clamp(2.6rem, 7vw, 4.9rem);
+    line-height: 0.94;
+    letter-spacing: -0.05em;
+    max-width: 700px;
+  }
+
+  .hero-copy p {
+    margin-top: 18px;
+    max-width: 700px;
+    color: var(--muted);
+    line-height: 1.75;
+    font-size: 1.03rem;
+  }
+
+  .hero-meta {
+    padding: 24px;
+    display: grid;
+    gap: 14px;
+  }
+
+  .meta-card {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 20px;
+    padding: 16px 18px;
+  }
+
+  .meta-card .label {
+    color: var(--dim);
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .meta-card strong {
+    display: block;
+    font-size: 1.15rem;
+    line-height: 1.3;
+  }
+
+  .meta-card span {
+    display: block;
+    margin-top: 6px;
+    color: var(--muted);
+    line-height: 1.6;
+    font-size: 0.94rem;
+  }
+
+  .tabs {
+    display: flex;
+    gap: 12px;
+    padding: 14px;
+    margin-bottom: 18px;
+  }
+
+  .tab-btn {
+    flex: 1;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.03);
+    color: var(--text);
+    border-radius: 18px;
+    padding: 16px 18px;
+    text-align: left;
+    cursor: pointer;
+    transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
+  }
+
+  .tab-btn:hover { transform: translateY(-1px); }
+  .tab-btn.active {
+    border-color: color-mix(in srgb, var(--accent) 42%, white);
+    background: color-mix(in srgb, var(--accent) 14%, rgba(255, 255, 255, 0.03));
+  }
+
+  .tab-btn .kicker {
+    display: block;
+    color: var(--accent);
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .tab-btn strong {
+    display: block;
+    font-size: 1.1rem;
+    margin-bottom: 6px;
+  }
+
+  .tab-btn span:last-child {
+    color: var(--muted);
+    line-height: 1.5;
+    font-size: 0.94rem;
+  }
+
+  .game-shell {
+    padding: 20px;
+  }
+
+  .game-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    align-items: start;
+    margin-bottom: 18px;
+  }
+
+  .game-title-block h2 {
+    font-size: clamp(1.5rem, 3vw, 2.2rem);
+    letter-spacing: -0.04em;
+    margin-bottom: 8px;
+  }
+
+  .game-title-block p {
+    color: var(--muted);
+    line-height: 1.7;
+    max-width: 760px;
+  }
+
+  .round-chip {
+    min-width: 210px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 20px;
+    padding: 14px 16px;
+  }
+
+  .round-chip .mono {
+    color: var(--accent);
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .round-chip strong {
+    display: block;
+    font-size: 1rem;
+    margin-bottom: 6px;
+  }
+
+  .round-chip span {
+    color: var(--muted);
+    line-height: 1.5;
+    font-size: 0.92rem;
+  }
+
+  .play-grid {
+    display: grid;
+    grid-template-columns: 1.1fr 0.9fr;
+    gap: 18px;
+  }
+
+  .panel {
+    background: var(--card);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 24px;
+    padding: 18px;
+  }
+
+  .panel h3 {
+    font-size: 1rem;
+    margin-bottom: 10px;
+  }
+
+  .prompt {
+    color: var(--text);
+    line-height: 1.7;
+    margin-bottom: 16px;
+    font-size: 1rem;
+  }
+
+  .hint-list {
+    list-style: none;
+    display: grid;
+    gap: 8px;
+  }
+
+  .hint-list li {
+    color: var(--muted);
+    line-height: 1.55;
+    display: flex;
+    gap: 8px;
+  }
+
+  .hint-list li::before {
+    content: "›";
+    color: var(--accent);
+    font-weight: 700;
+  }
+
+  .zones {
+    display: grid;
+    gap: 12px;
+    margin-top: 16px;
+  }
+
+  .zone {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px dashed rgba(255, 255, 255, 0.16);
+    border-radius: 18px;
+    padding: 14px;
+    min-height: 88px;
+    transition: border-color 180ms ease, transform 180ms ease, background 180ms ease;
+  }
+
+  .zone.drag-over {
+    border-color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 10%, rgba(255, 255, 255, 0.03));
+    transform: translateY(-1px);
+  }
+
+  .zone.correct {
+    border-color: rgba(142, 243, 176, 0.7);
+    background: rgba(142, 243, 176, 0.08);
+  }
+
+  .zone.incorrect {
+    border-color: rgba(255, 143, 163, 0.72);
+    background: rgba(255, 143, 163, 0.08);
+  }
+
+  .zone strong {
+    display: block;
+    font-size: 0.98rem;
+    margin-bottom: 6px;
+  }
+
+  .zone p {
+    color: var(--muted);
+    line-height: 1.5;
+    font-size: 0.92rem;
+    margin-bottom: 10px;
+  }
+
+  .slot {
+    min-height: 40px;
+    display: flex;
+    align-items: center;
+  }
+
+  .empty {
+    color: var(--dim);
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .token-bank {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 14px;
+  }
+
+  .token {
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text);
+    border-radius: 999px;
+    padding: 10px 14px;
+    font-size: 0.92rem;
+    cursor: grab;
+    transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
+  }
+
+  .token:hover { transform: translateY(-1px); }
+  .token.selected {
+    border-color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 16%, rgba(255, 255, 255, 0.05));
+  }
+
+  .token.placed {
+    width: 100%;
+    justify-content: center;
+    cursor: pointer;
+  }
+
+  .actions,
+  .pager {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .actions { margin-top: 16px; }
+  .pager { margin-top: 18px; }
+
+  .btn {
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--text);
+    border-radius: 999px;
+    padding: 11px 15px;
+    cursor: pointer;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .btn.primary {
+    background: color-mix(in srgb, var(--accent) 18%, rgba(255, 255, 255, 0.04));
+    border-color: color-mix(in srgb, var(--accent) 42%, rgba(255, 255, 255, 0.08));
+  }
+
+  .status,
+  .solution {
+    border-radius: 18px;
+    padding: 14px 16px;
+    margin-top: 16px;
+    line-height: 1.65;
+    font-size: 0.94rem;
+  }
+
+  .status {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    color: var(--muted);
+  }
+
+  .status.success {
+    color: #dfffea;
+    background: rgba(142, 243, 176, 0.08);
+    border-color: rgba(142, 243, 176, 0.26);
+  }
+
+  .status.error {
+    color: #ffe8ed;
+    background: rgba(255, 143, 163, 0.09);
+    border-color: rgba(255, 143, 163, 0.24);
+  }
+
+  .solution {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    color: var(--muted);
+  }
+
+  .solution strong {
+    display: block;
+    color: var(--text);
+    margin-bottom: 8px;
+  }
+
+  .legend {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 18px;
+  }
+
+  .legend .meta-card {
+    border-radius: 18px;
+  }
+
+  .explain-card {
+    padding: 20px;
+    margin-top: 18px;
+  }
+
+  .explain-card h3 {
+    font-size: 1.1rem;
+    margin-bottom: 10px;
+  }
+
+  .explain-card p {
+    color: var(--muted);
+    line-height: 1.7;
+  }
+
+  a.back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 18px;
+    color: var(--gold);
+    text-decoration: none;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 12px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  @media (max-width: 980px) {
+    .hero,
+    .play-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .legend {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (max-width: 620px) {
+    .wrap { width: min(100% - 18px, 1180px); padding-top: 18px; }
+    .hero-copy, .hero-meta, .tabs, .game-shell, .explain-card { border-radius: 22px; }
+    .hero-copy { padding: 22px; }
+    .game-shell { padding: 16px; }
+    .game-head { flex-direction: column; }
+    .round-chip { min-width: 0; width: 100%; }
+  }
+</style>
+</head>
+<body>
+  <main class="wrap">
+    <section class="hero">
+      <div class="hero-copy">
+        <p class="eyebrow">Interactive Interview Drills</p>
+        <h1>System Design Games for Architecture and Database Thinking.</h1>
+        <p>Use this page as a fast practice loop: build the architecture, model the data, check the answer, reset, and run the next round. Every prompt is designed to sound like something an interviewer could actually ask.</p>
+        <a class="back-link" href="./index.html">← Back to all study pages</a>
+      </div>
+      <div class="hero-meta">
+        <div class="meta-card">
+          <div class="label mono">Game Modes</div>
+          <strong>Architecture builder + relational modeling</strong>
+          <span>Multiple rounds in each mode, with distractors mixed into the option bank so users have to reason, not just match labels.</span>
+        </div>
+        <div class="meta-card">
+          <div class="label mono">Controls</div>
+          <strong>Drag and drop or tap to place</strong>
+          <span>Works on desktop and mobile. Users can reset the current puzzle or wipe all progress and start fresh.</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="tabs" id="tabs"></section>
+    <section class="game-shell" id="game-shell"></section>
+    <section class="explain-card">
+      <h3>How To Use This In Practice</h3>
+      <p>After placing each answer, say the reasoning out loud in one or two interview-ready sentences. The goal is not just getting the right tile in the right slot; it is building the habit of explaining why a cache is not the system of record, why a many-to-many needs a join table, or why an async event bus belongs outside the synchronous request path.</p>
+    </section>
+  </main>
+
+<script>
+const games = {
+  architecture: {
+    label: "Architecture",
+    accent: "#68e1fd",
+    kicker: "System design",
+    description: "Build first-pass architectures for common product scenarios.",
+    rounds: [
+      {
+        title: "Transactional Request Path",
+        prompt: "A marketplace app needs a clean request path for placing an order. Put each component in the right role and ignore the distractors that are not part of the core transaction flow.",
+        hints: [
+          "Separate user entry, routing, auth, domain logic, async fan-out, and durable storage.",
+          "The cache helps hot reads but should not own the canonical transaction record.",
+          "A CDN is useful for assets, but it is not part of this order write path."
+        ],
+        solution: "The request starts at the client, crosses the API gateway, checks identity in the auth service, and executes in the order service. Kafka handles async downstream work like notifications and analytics, while PostgreSQL remains the system of record.",
+        options: [
+          { id: "client", label: "Client App" },
+          { id: "gateway", label: "API Gateway" },
+          { id: "auth", label: "Auth Service" },
+          { id: "orders", label: "Order Service" },
+          { id: "kafka", label: "Kafka Event Bus" },
+          { id: "postgres", label: "PostgreSQL" },
+          { id: "redis", label: "Redis Cache" },
+          { id: "cdn", label: "CDN" },
+          { id: "warehouse", label: "Analytics Warehouse" }
+        ],
+        zones: [
+          { id: "entry", title: "User entrypoint", note: "What the customer directly interacts with." },
+          { id: "routing", title: "Routing boundary", note: "Receives and routes external traffic." },
+          { id: "identity", title: "Identity check", note: "Validates who is allowed to perform the action." },
+          { id: "core", title: "Transactional logic", note: "Owns the synchronous order workflow." },
+          { id: "events", title: "Async fan-out", note: "Decouples downstream non-blocking processing." },
+          { id: "storage", title: "System of record", note: "Durable store for the transaction." }
+        ],
+        correct: {
+          entry: "client",
+          routing: "gateway",
+          identity: "auth",
+          core: "orders",
+          events: "kafka",
+          storage: "postgres"
+        }
+      },
+      {
+        title: "Real-Time Feed Architecture",
+        prompt: "A sports app shows live scores to millions of users. Place the components for the low-latency read path and leave out anything that belongs to a slower back-office workflow.",
+        hints: [
+          "The live feed starts with a producer and ends with clients consuming pushed updates.",
+          "The pub-sub layer is central because updates fan out fast.",
+          "Object storage is useful elsewhere, but it is not the hot path for pushing scores."
+        ],
+        solution: "The live feed starts with the feed provider, lands in an ingest service, publishes through Redis pub-sub, and reaches a WebSocket gateway that pushes updates to clients. This keeps the hot path in memory and avoids a slow database round trip for each update.",
+        options: [
+          { id: "provider", label: "Feed Provider" },
+          { id: "ingest", label: "Ingest Service" },
+          { id: "pubsub", label: "Redis Pub/Sub" },
+          { id: "ws", label: "WebSocket Gateway" },
+          { id: "client", label: "Client App" },
+          { id: "s3", label: "Object Storage" },
+          { id: "etl", label: "Nightly ETL Job" }
+        ],
+        zones: [
+          { id: "source", title: "External source", note: "The upstream producer of live data." },
+          { id: "collector", title: "Ingestion boundary", note: "Normalizes incoming feed events." },
+          { id: "distribution", title: "Fan-out layer", note: "Broadcasts updates across nodes." },
+          { id: "delivery", title: "Realtime delivery", note: "Maintains user-facing live connections." },
+          { id: "consumer", title: "Consumer", note: "Receives score updates on the device." }
+        ],
+        correct: {
+          source: "provider",
+          collector: "ingest",
+          distribution: "pubsub",
+          delivery: "ws",
+          consumer: "client"
+        }
+      },
+      {
+        title: "Media Upload Pipeline",
+        prompt: "A product team wants users to upload profile images without overloading the API servers. Build the clean upload architecture.",
+        hints: [
+          "Large file bytes should bypass the main API process when possible.",
+          "The API still plays a role by authorizing the upload flow.",
+          "The image processor belongs after the object store event, not before the upload."
+        ],
+        solution: "The client asks the API for permission, receives a pre-signed URL service response, uploads directly to object storage, and then an image processor reacts asynchronously. That keeps the API thin while storage remains durable and scalable.",
+        options: [
+          { id: "client", label: "Client App" },
+          { id: "api", label: "API Service" },
+          { id: "presign", label: "Pre-Signed URL Service" },
+          { id: "blob", label: "Object Storage" },
+          { id: "processor", label: "Image Processor" },
+          { id: "search", label: "Search Cluster" },
+          { id: "cron", label: "Cron Worker" }
+        ],
+        zones: [
+          { id: "starter", title: "Upload initiator", note: "The actor starting the upload flow." },
+          { id: "authz", title: "Upload authorization", note: "Issues permission for direct upload." },
+          { id: "token", title: "Direct upload helper", note: "Returns temporary upload details." },
+          { id: "store", title: "Blob destination", note: "Stores the uploaded binary asset." },
+          { id: "post", title: "Post-upload processing", note: "Runs resize or thumbnail generation asynchronously." }
+        ],
+        correct: {
+          starter: "client",
+          authz: "api",
+          token: "presign",
+          store: "blob",
+          post: "processor"
+        }
+      },
+      {
+        title: "Search and Analytics Split",
+        prompt: "An ecommerce app needs a primary transactional store, a search experience, and an analytics sink. Put each component where it belongs in the architecture.",
+        hints: [
+          "Search is optimized for retrieval, not as the system of record.",
+          "Analytics should usually be fed asynchronously from transactional events.",
+          "The app service still owns the write path to the main database."
+        ],
+        solution: "The app service writes to PostgreSQL as the source of truth, publishes change events into Kafka, and those events feed Elasticsearch for search and the warehouse for analytics. That keeps transactional writes separate from read-optimized stores.",
+        options: [
+          { id: "app", label: "App Service" },
+          { id: "postgres", label: "PostgreSQL" },
+          { id: "kafka", label: "Kafka" },
+          { id: "elastic", label: "Elasticsearch" },
+          { id: "warehouse", label: "Analytics Warehouse" },
+          { id: "cdn", label: "CDN" },
+          { id: "redis", label: "Redis" }
+        ],
+        zones: [
+          { id: "writer", title: "Write owner", note: "Owns the business write operation." },
+          { id: "record", title: "Primary record store", note: "Canonical source of truth for transactions." },
+          { id: "stream", title: "Change event stream", note: "Carries updates to downstream systems." },
+          { id: "search", title: "Search-optimized read store", note: "Supports flexible product discovery." },
+          { id: "analytics", title: "Analytics sink", note: "Used for BI, dashboards, and offline reporting." }
+        ],
+        correct: {
+          writer: "app",
+          record: "postgres",
+          stream: "kafka",
+          search: "elastic",
+          analytics: "warehouse"
+        }
+      }
+    ]
+  },
+  relationships: {
+    label: "DB Relationships",
+    accent: "#f7a8ff",
+    kicker: "Data modeling",
+    description: "Choose the right relational cardinality from real business rules.",
+    rounds: [
+      {
+        title: "Commerce Schema Basics",
+        prompt: "Model a small commerce domain. Match each entity pair to the correct relationship and leave out any distractors.",
+        hints: [
+          "Users place many orders over time.",
+          "Orders and products need a join table because both sides can repeat.",
+          "A strict payment record is a good one-to-one example in this simplified system."
+        ],
+        solution: "Users to orders is one-to-many, orders to payments is one-to-one, orders to products is many-to-many via a join table, and categories to products is one-to-many. The unused user-profile card is a distractor in this round.",
+        options: [
+          { id: "u_orders", label: "1 user -> many orders" },
+          { id: "o_payment", label: "1 order -> 1 payment" },
+          { id: "o_products", label: "orders <-> products via join table" },
+          { id: "c_products", label: "1 category -> many products" },
+          { id: "u_profile", label: "1 user -> 1 profile" }
+        ],
+        zones: [
+          { id: "usersOrders", title: "Users and Orders", note: "A customer can place many purchases." },
+          { id: "ordersPayments", title: "Orders and Payments", note: "A completed order stores a single payment record." },
+          { id: "ordersProducts", title: "Orders and Products", note: "Each order can contain multiple products and products appear in many orders." },
+          { id: "categoriesProducts", title: "Categories and Products", note: "A category groups multiple products." }
+        ],
+        correct: {
+          usersOrders: "u_orders",
+          ordersPayments: "o_payment",
+          ordersProducts: "o_products",
+          categoriesProducts: "c_products"
+        }
+      },
+      {
+        title: "Publishing Platform",
+        prompt: "A publishing platform tracks authors, books, tags, and publishers. Pick the right relationship type for each pair.",
+        hints: [
+          "An author can write multiple books.",
+          "A book can carry many tags and a tag can belong to many books.",
+          "Each book has one publisher in this simplified model, while a publisher can publish many books."
+        ],
+        solution: "Authors to books is one-to-many, books to tags is many-to-many through a join table, and publishers to books is one-to-many. The one-to-one contract card is a distractor here.",
+        options: [
+          { id: "a_books", label: "1 author -> many books" },
+          { id: "b_tags", label: "books <-> tags via join table" },
+          { id: "p_books", label: "1 publisher -> many books" },
+          { id: "b_contract", label: "1 book -> 1 contract" }
+        ],
+        zones: [
+          { id: "authorsBooks", title: "Authors and Books", note: "A writer can publish multiple books over time." },
+          { id: "booksTags", title: "Books and Tags", note: "Each book can carry many tags and each tag can apply to many books." },
+          { id: "publishersBooks", title: "Publishers and Books", note: "A publisher can release many books." }
+        ],
+        correct: {
+          authorsBooks: "a_books",
+          booksTags: "b_tags",
+          publishersBooks: "p_books"
+        }
+      },
+      {
+        title: "Education Platform",
+        prompt: "A learning platform tracks students, courses, enrollments, and advisors. Model the relationships cleanly.",
+        hints: [
+          "Students enroll in many courses and each course has many students.",
+          "An advisor supports many students in this model.",
+          "The enrollment relationship should explicitly carry the join table idea."
+        ],
+        solution: "Students and courses is many-to-many via enrollments, advisors to students is one-to-many, and students to profiles is one-to-one. The course-to-classroom option is a distractor in this round.",
+        options: [
+          { id: "s_courses", label: "students <-> courses via enrollments" },
+          { id: "a_students", label: "1 advisor -> many students" },
+          { id: "s_profile", label: "1 student -> 1 profile" },
+          { id: "c_room", label: "1 course -> 1 classroom" }
+        ],
+        zones: [
+          { id: "studentsCourses", title: "Students and Courses", note: "Learners take many courses and courses serve many learners." },
+          { id: "advisorsStudents", title: "Advisors and Students", note: "Each advisor may coach multiple students." },
+          { id: "studentsProfiles", title: "Students and Profiles", note: "Each student has one profile record." }
+        ],
+        correct: {
+          studentsCourses: "s_courses",
+          advisorsStudents: "a_students",
+          studentsProfiles: "s_profile"
+        }
+      },
+      {
+        title: "Sports Scheduling",
+        prompt: "A sports scheduling system stores teams, players, matches, and stadiums. Match each entity pair to the right cardinality.",
+        hints: [
+          "A team contains many players.",
+          "A match involves two teams, and teams appear in many matches over time.",
+          "A stadium hosts many matches in this simplified model."
+        ],
+        solution: "Teams to players is one-to-many, teams to matches is many-to-many if represented abstractly over time, and stadiums to matches is one-to-many. The player-to-locker card is a distractor on this round.",
+        options: [
+          { id: "t_players", label: "1 team -> many players" },
+          { id: "t_matches", label: "teams <-> matches via join table" },
+          { id: "s_matches", label: "1 stadium -> many matches" },
+          { id: "p_locker", label: "1 player -> 1 locker" }
+        ],
+        zones: [
+          { id: "teamsPlayers", title: "Teams and Players", note: "A roster contains multiple players." },
+          { id: "teamsMatches", title: "Teams and Matches", note: "Teams play in many matches and each match includes teams." },
+          { id: "stadiumsMatches", title: "Stadiums and Matches", note: "A stadium can host many matches." }
+        ],
+        correct: {
+          teamsPlayers: "t_players",
+          teamsMatches: "t_matches",
+          stadiumsMatches: "s_matches"
+        }
+      }
+    ]
+  }
+};
+
+const state = {
+  currentGame: "architecture",
+  roundIndex: { architecture: 0, relationships: 0 },
+  boards: createInitialBoards()
+};
+
+function createInitialBoards() {
+  const boards = {};
+  Object.keys(games).forEach(gameKey => {
+    boards[gameKey] = games[gameKey].rounds.map(() => ({
+      selected: null,
+      placed: {},
+      status: null,
+      showSolution: false
+    }));
+  });
+  return boards;
+}
+
+function getRound(gameKey = state.currentGame) {
+  return games[gameKey].rounds[state.roundIndex[gameKey]];
+}
+
+function getBoard(gameKey = state.currentGame) {
+  return state.boards[gameKey][state.roundIndex[gameKey]];
+}
+
+function getPlacedZone(gameKey, itemId) {
+  const placed = getBoard(gameKey).placed;
+  return Object.keys(placed).find(zoneId => placed[zoneId] === itemId);
+}
+
+function getAvailableOptions(gameKey) {
+  const board = getBoard(gameKey);
+  const used = new Set(Object.values(board.placed));
+  return getRound(gameKey).options.filter(option => !used.has(option.id));
+}
+
+function getOption(gameKey, optionId) {
+  return getRound(gameKey).options.find(option => option.id === optionId);
+}
+
+function renderTabs() {
+  document.getElementById("tabs").innerHTML = Object.entries(games).map(([gameKey, game]) => `
+    <button type="button" class="tab-btn ${state.currentGame === gameKey ? "active" : ""}"
+      style="--accent:${game.accent}"
+      onclick="switchGame('${gameKey}')">
+      <span class="kicker">${game.kicker}</span>
+      <strong>${game.label}</strong>
+      <span>${game.description}</span>
+    </button>
+  `).join("");
+}
+
+function renderToken(gameKey, option, placed = false) {
+  const board = getBoard(gameKey);
+  const selected = board.selected === option.id ? " selected" : "";
+  const placedClass = placed ? " placed" : "";
+  const clickHandler = placed
+    ? `clearZone('${gameKey}','${getPlacedZone(gameKey, option.id)}')`
+    : `selectOption('${gameKey}','${option.id}')`;
+
+  return `<button type="button" class="token${selected}${placedClass}" draggable="${placed ? "false" : "true"}"
+    onclick="${clickHandler}"
+    ${placed ? "" : `ondragstart="startDrag(event,'${gameKey}','${option.id}')"`}>
+    ${option.label}
+  </button>`;
+}
+
+function renderZone(gameKey, zone) {
+  const board = getBoard(gameKey);
+  const optionId = board.placed[zone.id];
+  const option = optionId ? getOption(gameKey, optionId) : null;
+  let zoneClass = "zone";
+
+  if (board.status && board.status.results) {
+    zoneClass += board.status.results[zone.id] ? " correct" : " incorrect";
+  }
+
+  return `<div class="${zoneClass}" style="--accent:${games[gameKey].accent}"
+    onclick="placeOption('${gameKey}','${zone.id}')"
+    ondragover="allowDrop(event)"
+    ondragenter="toggleDragState(event, true)"
+    ondragleave="toggleDragState(event, false)"
+    ondrop="dropOption(event,'${gameKey}','${zone.id}')">
+    <strong>${zone.title}</strong>
+    <p>${zone.note}</p>
+    <div class="slot">${option ? renderToken(gameKey, option, true) : '<span class="empty">drop or tap a card here</span>'}</div>
+  </div>`;
+}
+
+function renderGame() {
+  const game = games[state.currentGame];
+  const round = getRound();
+  const board = getBoard();
+  const roundNumber = state.roundIndex[state.currentGame] + 1;
+  const totalRounds = game.rounds.length;
+  const statusClass = board.status ? ` ${board.status.type}` : "";
+  const statusMessage = board.status ? board.status.message : "Place the cards, check the answer, and use reset whenever you want a fresh attempt.";
+
+  document.getElementById("game-shell").innerHTML = `
+    <div class="game-head">
+      <div class="game-title-block">
+        <p class="eyebrow" style="color:${game.accent}">${game.kicker}</p>
+        <h2>${round.title}</h2>
+        <p>${round.prompt}</p>
+      </div>
+      <div class="round-chip" style="--accent:${game.accent}">
+        <div class="mono">${game.label} Round ${roundNumber} / ${totalRounds}</div>
+        <strong>${round.title}</strong>
+        <span>${game.description}</span>
+      </div>
+    </div>
+
+    <div class="play-grid">
+      <div class="panel">
+        <h3>Scenario</h3>
+        <div class="prompt">${round.prompt}</div>
+        <ul class="hint-list">
+          ${round.hints.map(hint => `<li>${hint}</li>`).join("")}
+        </ul>
+        <div class="zones">${round.zones.map(zone => renderZone(state.currentGame, zone)).join("")}</div>
+      </div>
+
+      <div class="panel">
+        <h3>Option Bank</h3>
+        <p class="prompt">Some cards are distractors on purpose. Leave them unused if they do not fit the business rule or architecture role.</p>
+        <div class="token-bank">${getAvailableOptions(state.currentGame).map(option => renderToken(state.currentGame, option)).join("")}</div>
+        <div class="actions">
+          <button type="button" class="btn primary" onclick="checkBoard('${state.currentGame}')">Check Answer</button>
+          <button type="button" class="btn" onclick="resetBoard('${state.currentGame}')">Reset Round</button>
+          <button type="button" class="btn" onclick="toggleSolution('${state.currentGame}')">${board.showSolution ? "Hide Solution" : "Show Solution"}</button>
+          <button type="button" class="btn" onclick="resetAll()">Reset All Progress</button>
+        </div>
+        <div class="status${statusClass}">${statusMessage}</div>
+        ${board.showSolution ? `<div class="solution"><strong>Why this answer works</strong>${round.solution}</div>` : ""}
+        <div class="pager">
+          <button type="button" class="btn" onclick="prevRound()" ${roundNumber === 1 ? "disabled" : ""}>Previous</button>
+          <button type="button" class="btn" onclick="nextRound()" ${roundNumber === totalRounds ? "disabled" : ""}>Next</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="legend">
+      <div class="meta-card">
+        <div class="label mono">Practice Goal</div>
+        <strong>Explain the answer out loud</strong>
+        <span>Interviewers care about the reasoning behind the placement, not just the final pattern.</span>
+      </div>
+      <div class="meta-card">
+        <div class="label mono">Mobile Fallback</div>
+        <strong>Tap a card, then tap a zone</strong>
+        <span>You do not need drag and drop to finish any round.</span>
+      </div>
+      <div class="meta-card">
+        <div class="label mono">Reset Support</div>
+        <strong>Per-round and full reset</strong>
+        <span>Use quick reset to retry one puzzle or reset all progress to replay the whole page.</span>
+      </div>
+    </div>
+  `;
+}
+
+function switchGame(gameKey) {
+  state.currentGame = gameKey;
+  renderTabs();
+  renderGame();
+}
+
+function selectOption(gameKey, optionId) {
+  const board = getBoard(gameKey);
+  board.selected = board.selected === optionId ? null : optionId;
+  renderGame();
+}
+
+function placeOption(gameKey, zoneId, forcedOptionId) {
+  const board = getBoard(gameKey);
+  const optionId = forcedOptionId || board.selected;
+  if (!optionId) return;
+
+  const previousZone = getPlacedZone(gameKey, optionId);
+  if (previousZone) delete board.placed[previousZone];
+  delete board.placed[zoneId];
+
+  board.placed[zoneId] = optionId;
+  board.selected = null;
+  board.status = null;
+  renderGame();
+}
+
+function clearZone(gameKey, zoneId) {
+  const board = getBoard(gameKey);
+  delete board.placed[zoneId];
+  board.status = null;
+  renderGame();
+}
+
+function resetBoard(gameKey) {
+  state.boards[gameKey][state.roundIndex[gameKey]] = {
+    selected: null,
+    placed: {},
+    status: null,
+    showSolution: false
+  };
+  renderGame();
+}
+
+function resetAll() {
+  state.roundIndex = { architecture: 0, relationships: 0 };
+  state.boards = createInitialBoards();
+  state.currentGame = "architecture";
+  renderTabs();
+  renderGame();
+}
+
+function toggleSolution(gameKey) {
+  const board = getBoard(gameKey);
+  board.showSolution = !board.showSolution;
+  renderGame();
+}
+
+function prevRound() {
+  if (state.roundIndex[state.currentGame] === 0) return;
+  state.roundIndex[state.currentGame] -= 1;
+  renderGame();
+}
+
+function nextRound() {
+  if (state.roundIndex[state.currentGame] >= games[state.currentGame].rounds.length - 1) return;
+  state.roundIndex[state.currentGame] += 1;
+  renderGame();
+}
+
+function allowDrop(event) {
+  event.preventDefault();
+}
+
+function toggleDragState(event, active) {
+  event.currentTarget.classList.toggle("drag-over", active);
+}
+
+function startDrag(event, gameKey, optionId) {
+  event.dataTransfer.setData("text/plain", JSON.stringify({ gameKey, optionId }));
+}
+
+function dropOption(event, gameKey, zoneId) {
+  event.preventDefault();
+  toggleDragState(event, false);
+  const raw = event.dataTransfer.getData("text/plain");
+  if (!raw) return;
+
+  try {
+    const payload = JSON.parse(raw);
+    if (payload.gameKey !== gameKey) return;
+    placeOption(gameKey, zoneId, payload.optionId);
+  } catch (error) {
+    console.error("Invalid drag payload", error);
+  }
+}
+
+function checkBoard(gameKey) {
+  const round = getRound(gameKey);
+  const board = getBoard(gameKey);
+  const results = {};
+  let placedCount = 0;
+  let correctCount = 0;
+
+  round.zones.forEach(zone => {
+    const isCorrect = board.placed[zone.id] === round.correct[zone.id];
+    if (board.placed[zone.id]) placedCount += 1;
+    results[zone.id] = isCorrect;
+    if (isCorrect) correctCount += 1;
+  });
+
+  if (placedCount < round.zones.length) {
+    board.status = {
+      type: "error",
+      message: `You still have ${round.zones.length - placedCount} open slot${round.zones.length - placedCount === 1 ? "" : "s"}. Fill every zone before checking.`,
+      results: null
+    };
+  } else if (correctCount === round.zones.length) {
+    board.status = {
+      type: "success",
+      message: `Nice. You matched all ${round.zones.length} slots correctly. Move to the next round or reset and run it again.`,
+      results
+    };
+  } else {
+    board.status = {
+      type: "error",
+      message: `Close. ${correctCount} of ${round.zones.length} placements are correct. Review the highlighted zones and try again.`,
+      results
+    };
+  }
+
+  renderGame();
+}
+
+renderTabs();
+renderGame();
+</script>
+</body>
+</html>
