@@ -42,7 +42,6 @@ body::before {
 
 .wrap { position: relative; z-index: 1; max-width: 1240px; margin: 0 auto; padding: 0 24px 60px; }
 
-/* HEADER */
 .page-header { text-align: center; padding: 56px 0 48px; }
 .page-eyebrow {
   font-family: var(--mono);
@@ -74,7 +73,6 @@ body::before {
 .progress-track { width: 160px; height: 4px; background: rgba(255,255,255,0.08); border-radius: 2px; overflow: hidden; }
 .progress-fill  { height: 100%; border-radius: 2px; background: linear-gradient(90deg, #a78bfa, #f472b6); transition: width 0.4s ease; }
 
-/* GRID */
 .card-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -83,7 +81,6 @@ body::before {
 @media (max-width: 1000px) { .card-grid { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 560px)  { .card-grid { grid-template-columns: 1fr; } }
 
-/* CONCEPT CARD — matches screenshot exactly */
 .concept-card {
   background: var(--card);
   border: 1px solid var(--border);
@@ -131,7 +128,6 @@ body::before {
   min-height: 44px;
 }
 
-/* Diagram inset box — dark bg like in screenshot */
 .card-diagram {
   background: var(--card-inner);
   border-radius: 8px;
@@ -142,7 +138,6 @@ body::before {
 }
 .card-diagram svg { display: block; width: 100%; height: auto; }
 
-/* Bullet list */
 .card-bullets { list-style: none; padding: 0; }
 .card-bullets li {
   font-size: 12px;
@@ -168,7 +163,6 @@ body::before {
   to   { opacity: 1; transform: translateY(0); }
 }
 
-/* DETAIL VIEW */
 .detail-view { display: none; animation: fadeUp 0.3s ease both; }
 .detail-view.open { display: block; }
 
@@ -257,213 +251,6 @@ body::before {
 .question { font-size: 15px; color: var(--text); font-style: italic; line-height: 1.65; margin-bottom: 14px; }
 .answer-hint { font-size: 13px; color: var(--muted); line-height: 1.7; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 12px; }
 
-.game-shell {
-  display: grid;
-  grid-template-columns: 1.3fr 0.9fr;
-  gap: 18px;
-}
-
-.game-stage,
-.game-side {
-  background: var(--card);
-  border: 1px solid rgba(255,255,255,0.07);
-  border-radius: 12px;
-  padding: 18px;
-}
-
-.game-kicker {
-  font-family: var(--mono);
-  font-size: 10px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--accent, #888);
-  margin-bottom: 10px;
-}
-
-.game-prompt {
-  font-size: 14px;
-  color: var(--text);
-  line-height: 1.7;
-  margin-bottom: 16px;
-}
-
-.game-zones { display: grid; gap: 12px; }
-
-.game-zone {
-  background: var(--card-inner);
-  border: 1px dashed rgba(255,255,255,0.14);
-  border-radius: 10px;
-  padding: 14px;
-  min-height: 84px;
-  transition: border-color 0.18s ease, transform 0.18s ease, background 0.18s ease;
-}
-
-.game-zone.drag-over {
-  border-color: var(--accent, #888);
-  background: rgba(255,255,255,0.03);
-  transform: translateY(-1px);
-}
-
-.game-zone.correct {
-  border-color: #4ade80;
-  background: rgba(74,222,128,0.08);
-}
-
-.game-zone.incorrect {
-  border-color: #fb7185;
-  background: rgba(251,113,133,0.08);
-}
-
-.game-zone-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  margin-bottom: 10px;
-}
-
-.game-zone-title {
-  font-size: 13px;
-  color: var(--text);
-  font-weight: 600;
-}
-
-.game-zone-note {
-  font-size: 11px;
-  color: var(--muted);
-  line-height: 1.5;
-}
-
-.game-slot {
-  min-height: 36px;
-  display: flex;
-  align-items: center;
-}
-
-.game-empty {
-  font-size: 11px;
-  color: var(--dim);
-  font-family: var(--mono);
-  letter-spacing: 0.04em;
-}
-
-.game-bank {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 14px;
-}
-
-.game-token {
-  border: 1px solid rgba(255,255,255,0.1);
-  background: rgba(255,255,255,0.04);
-  color: var(--text);
-  border-radius: 999px;
-  padding: 10px 12px;
-  font-size: 12px;
-  line-height: 1.2;
-  cursor: grab;
-  user-select: none;
-  transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease;
-}
-
-.game-token:hover {
-  transform: translateY(-1px);
-  border-color: rgba(255,255,255,0.22);
-}
-
-.game-token.selected {
-  border-color: var(--accent, #888);
-  background: color-mix(in srgb, var(--accent, #888) 14%, transparent);
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent, #888) 45%, transparent);
-}
-
-.game-token.placed {
-  cursor: pointer;
-  width: 100%;
-  justify-content: center;
-  background: rgba(255,255,255,0.06);
-}
-
-.game-actions {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  margin-top: 16px;
-}
-
-.game-btn {
-  border: 1px solid rgba(255,255,255,0.09);
-  background: var(--card-inner);
-  color: var(--text);
-  border-radius: 999px;
-  padding: 10px 14px;
-  font-family: var(--mono);
-  font-size: 11px;
-  letter-spacing: 0.04em;
-  cursor: pointer;
-}
-
-.game-btn.primary {
-  background: color-mix(in srgb, var(--accent, #888) 18%, var(--card-inner));
-  border-color: color-mix(in srgb, var(--accent, #888) 45%, rgba(255,255,255,0.09));
-}
-
-.game-status {
-  margin-top: 14px;
-  padding: 12px 14px;
-  border-radius: 10px;
-  font-size: 12px;
-  line-height: 1.6;
-  color: var(--muted);
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.06);
-}
-
-.game-status.success {
-  color: #d1fae5;
-  border-color: rgba(74,222,128,0.28);
-  background: rgba(74,222,128,0.08);
-}
-
-.game-status.error {
-  color: #ffe4e6;
-  border-color: rgba(251,113,133,0.26);
-  background: rgba(251,113,133,0.08);
-}
-
-.game-side ul { list-style: none; padding: 0; }
-
-.game-side li {
-  font-size: 12px;
-  color: var(--muted);
-  padding: 6px 0;
-  border-bottom: 1px solid rgba(255,255,255,0.05);
-  display: flex;
-  gap: 8px;
-  line-height: 1.55;
-}
-
-.game-side li:last-child { border-bottom: none; }
-
-.game-side li::before {
-  content: '›';
-  color: var(--accent, #888);
-  flex-shrink: 0;
-  font-weight: 700;
-}
-
-.game-tip {
-  margin-top: 16px;
-  font-size: 12px;
-  color: var(--muted);
-  line-height: 1.6;
-}
-
-@media (max-width: 760px) {
-  .game-shell { grid-template-columns: 1fr; }
-}
-
 svg text { font-family: 'JetBrains Mono', monospace; }
 .t  { font-size: 13px; fill: #e8eaf2; }
 .ts { font-size: 11px; fill: #6b7494; }
@@ -475,10 +262,10 @@ svg text { font-family: 'JetBrains Mono', monospace; }
 
   <div class="page-header">
     <div class="page-eyebrow">ByteByteGo · System Design Fundamentals</div>
-    <h1 class="page-title">11 Concepts + 2 <span class="accent">Games</span></h1>
-    <p class="page-subtitle">Visual reference for distributed systems design interviews, production architecture, and hands-on drills</p>
+    <h1 class="page-title">8 Concepts You <span class="accent">Must</span> Know</h1>
+    <p class="page-subtitle">Visual reference for distributed systems design interviews &amp; production architecture</p>
     <div class="progress-row">
-      <span class="progress-label" id="progress-text">0 / 13 reviewed</span>
+      <span class="progress-label" id="progress-text">0 / 11 reviewed</span>
       <div class="progress-track"><div class="progress-fill" id="pbar" style="width:0%"></div></div>
     </div>
   </div>
@@ -647,112 +434,11 @@ const concepts = [
     interviewHint:"CDN (CloudFront/Cloudflare) for all static assets with content-addressed URLs (long TTLs). Dynamic odds data cached at edge for 1-2s with Stale-While-Revalidate. Critical path HTML served from the nearest region. Mention HTTP/2 multiplexing, Brotli compression, and preloading critical JS chunks.",
     tools:["Cloudflare","AWS CloudFront","Fastly","Akamai","Cloudflare Workers"],
     tradeoffs:"Cache invalidation is hard — use content-hashed URLs for immutable assets (TTL=1yr). Dynamic content with short TTLs can still have stale windows. CDN adds cost per GB transferred. Not useful for personalized or real-time content.",
-    diagramSvg:`<svg width="100%" viewBox="0 0 320 130"><defs><marker id="a10" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs><circle cx="26" cy="34" r="18" fill="#00d2d318" stroke="#00d2d3" stroke-width="1.2"/><text class="ts" x="26" y="30" text-anchor="middle" fill="#00d2d3">User</text><text class="ts" x="26" y="44" text-anchor="middle" fill="#00d2d388">UK</text><circle cx="26" cy="96" r="18" fill="#00d2d318" stroke="#00d2d388" stroke-width="1"/><text class="ts" x="26" y="92" text-anchor="middle" fill="#00d2d388">User</text><text class="ts" x="26" y="106" text-anchor="middle" fill="#6b7494">US</text><line x1="44" y1="40" x2="78" y2="56" stroke="#6b7494" stroke-width="1" marker-end="url(#a10)"/><line x1="44" y1="90" x2="78" y2="76" stroke="#6b7494" stroke-width="1" marker-end="url(#a10)"/><rect x="78" y="20" width="88" height="30" rx="6" fill="#00d2d322" stroke="#00d2d3" stroke-width="1.2"/><text class="th" x="122" y="35" text-anchor="middle" dominant-baseline="central" fill="#00d2d3">CDN (LON)</text><rect x="78" y="80" width="88" height="30" rx="6" fill="#00d2d322" stroke="#00d2d3" stroke-width="1.2"/><text class="th" x="122" y="95" text-anchor="middle" dominant-baseline="central" fill="#00d2d3">CDN (NYC)</text><text class="ts" x="122" y="64" text-anchor="middle" fill="#6b7494">~10ms</text><line x1="166" y1="34" x2="200" y2="52" stroke="#6b7494" stroke-width="1" stroke-dasharray="3 2" marker-end="url(#a10)"/><line x1="166" y1="96" x2="200" y2="78" stroke="#6b7494" stroke-width="1" stroke-dasharray="3 2" marker-end="url(#a10)"/><rect x="200" y="44" width="82" height="42" rx="6" fill="#ff6b6b18" stroke="#ff6b6b88" stroke-width="1"/><text class="th" x="241" y="62" text-anchor="middle" dominant-baseline="central" fill="#ff6b6b88">Origin</text><text class="ts" x="241" y="78" text-anchor="middle" dominant-baseline="central" fill="#6b7494">~150ms</text></svg>`
-  },
-  {
-    id:11, num:"12 / 13", accent:"#7dd3fc", game:"architecture",
-    title:"Game: Build the System Architecture",
-    bullets:["Drag components into the right architecture slots","Includes decoys so users have to reason, not memorize","Supports desktop drag-drop and mobile tap placement"],
-    summary:"Practice building a clean interview-ready system diagram. The goal is to recognize where entrypoint, routing, auth, domain logic, cache, async work, and durable storage belong.",
-    howItWorks:["Pick from a mixed bank of real components and distractors","Place each component into the matching responsibility zone","Validate the board and explain the request path out loud"],
-    fanduel:"This mirrors a common whiteboard round where the interviewer wants the first-pass architecture quickly. A strong answer separates synchronous correctness from asynchronous scale and makes it obvious which layer owns what.",
-    fanDuelExamples:["Client requests enter through an API gateway before reaching domain services","Authentication is isolated from core transactional logic","Redis accelerates hot reads while PostgreSQL stays source of truth","Kafka decouples settlement, analytics, and notification pipelines"],
-    interviewQ:"Can you lay out the first-pass architecture for a transactional platform without mixing up cache, queue, and source of truth responsibilities?",
-    interviewHint:"Narrate the flow as you place the blocks: user entrypoint, edge routing, identity check, core service, hot read layer, async event bus, and durable database. Mention what must stay synchronous and what can fan out later.",
-    tools:["API Gateway","Redis","Kafka","PostgreSQL","Auth Service","Domain Service"],
-    tradeoffs:"If the wrong concern sits in the wrong layer, the architecture becomes harder to scale and reason about. Clear boundaries are one of the biggest signals interviewers look for.",
-    diagramSvg:`<svg width="100%" viewBox="0 0 320 130"><rect x="10" y="20" width="64" height="28" rx="6" fill="#7dd3fc18" stroke="#7dd3fc" stroke-width="1.2"/><text class="ts" x="42" y="38" text-anchor="middle" fill="#7dd3fc">client</text><line x1="74" y1="34" x2="112" y2="34" stroke="#6b7494" stroke-width="1.2"/><rect x="112" y="20" width="76" height="28" rx="6" fill="#7dd3fc18" stroke="#7dd3fc" stroke-width="1.2"/><text class="ts" x="150" y="38" text-anchor="middle" fill="#7dd3fc">gateway</text><line x1="188" y1="34" x2="228" y2="34" stroke="#6b7494" stroke-width="1.2"/><rect x="228" y="20" width="80" height="28" rx="6" fill="#7dd3fc18" stroke="#7dd3fc" stroke-width="1.2"/><text class="ts" x="268" y="38" text-anchor="middle" fill="#7dd3fc">service</text><rect x="52" y="78" width="84" height="28" rx="6" fill="#1e2535" stroke="#3a4060" stroke-width="1"/><text class="ts" x="94" y="96" text-anchor="middle" fill="#8892aa">cache</text><rect x="184" y="78" width="84" height="28" rx="6" fill="#1e2535" stroke="#3a4060" stroke-width="1"/><text class="ts" x="226" y="96" text-anchor="middle" fill="#8892aa">queue + db</text></svg>`
-  },
-  {
-    id:12, num:"13 / 13", accent:"#f9a8d4", game:"relationships",
-    title:"Game: Match the Database Relationships",
-    bullets:["Relate entities based on business rules","Includes a join-table case and a true 1:1 edge","Designed as a schema reasoning drill"],
-    summary:"This game tests the modeling instinct behind relational design questions. Instead of memorizing terms, users map business rules to the correct cardinality.",
-    howItWorks:["Read each prompt and the available relationship cards","Place the correct relationship type on every entity pair","Check the board and justify the result like you would in an interview"],
-    fanduel:"Most database rounds are really testing whether you understand ownership, optionality, and when a join table is required. Good schema design starts with the business truth, then expresses it with keys and constraints.",
-    fanDuelExamples:["Users can place many orders over time","Each transactional order maps to one payment record","Orders and products require a join table because both sides are plural","A category organizes many products in the catalog"],
-    interviewQ:"If we modeled users, orders, products, payments, and categories, which relationships would you choose and why?",
-    interviewHint:"Explain the business rule first, then the schema shape. Call out the join table for order items explicitly, and mention when a strict one-to-one is useful for separation of concerns.",
-    tools:["Foreign keys","Join tables","Unique constraints","Composite keys","Normalization"],
-    tradeoffs:"The wrong cardinality creates awkward inserts, broken reporting, and painful migrations later. A clean schema protects future product changes.",
-    diagramSvg:`<svg width="100%" viewBox="0 0 320 130"><rect x="18" y="18" width="66" height="24" rx="6" fill="#f9a8d418" stroke="#f9a8d4" stroke-width="1.2"/><text class="ts" x="51" y="34" text-anchor="middle" fill="#f9a8d4">users</text><rect x="128" y="18" width="66" height="24" rx="6" fill="#f9a8d418" stroke="#f9a8d4" stroke-width="1.2"/><text class="ts" x="161" y="34" text-anchor="middle" fill="#f9a8d4">orders</text><rect x="238" y="18" width="66" height="24" rx="6" fill="#f9a8d418" stroke="#f9a8d4" stroke-width="1.2"/><text class="ts" x="271" y="34" text-anchor="middle" fill="#f9a8d4">products</text><line x1="84" y1="30" x2="128" y2="30" stroke="#6b7494" stroke-width="1.2"/><line x1="194" y1="30" x2="238" y2="30" stroke="#6b7494" stroke-width="1.2"/><rect x="74" y="84" width="70" height="24" rx="6" fill="#1e2535" stroke="#3a4060" stroke-width="1"/><text class="ts" x="109" y="100" text-anchor="middle" fill="#8892aa">payments</text><rect x="176" y="84" width="70" height="24" rx="6" fill="#1e2535" stroke="#3a4060" stroke-width="1"/><text class="ts" x="211" y="100" text-anchor="middle" fill="#8892aa">category</text></svg>`
+    diagramSvg:`<svg width="100%" viewBox="0 0 320 130"><defs><marker id="a10" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs><circle cx="26" cy="34" r="18" fill="#00d2d318" stroke="#00d2d3" stroke-width="1.2"/><text class="ts" x="26" y="30" text-anchor="middle" fill="#00d2d3">User</text><text class="ts" x="26" y="44" text-anchor="middle" fill="#00d2d388">UK</text><circle cx="26" cy="96" r="18" fill="#00d2d318" stroke="#00d2d388" stroke-width="1"/><text class="ts" x="26" y="92" text-anchor="middle" fill="#00d2d388">User</text><text class="ts" x="26" y="106" text-anchor="middle" fill="#6b7494">US</text><line x1="44" y1="40" x2="78" y2="56" stroke="#6b7494" stroke-width="1" marker-end="url(#a10)"/><line x1="44" y1="90" x2="78" y2="76" stroke="#6b7494" stroke-width="1" marker-end="url(#a10)"/><rect x="78" y="20" width="88" height="30" rx="6" fill="#00d2d322" stroke="#00d2d3" stroke-width="1.2"/><text class="th" x="122" y="35" text-anchor="middle" dominant-baseline="central" fill="#00d2d3">CDN (LON)</text><rect x="78" y="80" width="88" height="30" rx="6" fill="#00d2d322" stroke="#00d2d3" stroke-width="1.2"/><text class="th" x="122" y="95" text-anchor="middle" dominant-baseline="central" fill="#00d2d3">CDN (NYC)</text><text class="ts" x="122" y="64" text-anchor="middle" fill="#6b7494">~10ms</text><line x1="166" y1="34" x2="200" y2="52" stroke="#6b7494" stroke-width="1" stroke-dasharray="3 2" marker-end="url(#a10)"/><line x1="166" y1="96" x2="200" y2="78" stroke="#6b7494" stroke-width="1" stroke-dasharray="3 2" marker-end="url(#a10)"/><rect x="200" y="44" width="82" height="42" rx="6" fill="#ff6b6b18" stroke="#ff6b6b88" stroke-width="1"/><text class="th" x="241" y="62" text-anchor="middle" dominant-baseline="central" fill="#ff6b6b88">Origin</text><text class="ts" x="241" y="78" text-anchor="middle" fill="#6b7494">~150ms</text></svg>`
   }
 ];
 
 let viewed = new Set();
-const gameState = {
-  architecture: { selected: null, placed: {}, status: null },
-  relationships: { selected: null, placed: {}, status: null }
-};
-
-const gameDefinitions = {
-  architecture: {
-    intro: "Build a solid first-pass architecture for a transactional platform. Some tokens are distractors, so leave anything that does not belong in the core flow.",
-    instructions: [
-      "Think in responsibilities, not just request order.",
-      "The cache should accelerate hot reads, not replace the database.",
-      "The event bus belongs on the async side of the system."
-    ],
-    tip: "On mobile, tap a token to select it, then tap a zone to place it. Tap a placed token to send it back to the bank.",
-    pool: [
-      { id: "client", label: "Client App" },
-      { id: "gateway", label: "API Gateway" },
-      { id: "auth", label: "Auth Service" },
-      { id: "service", label: "Order Service" },
-      { id: "cache", label: "Redis Cache" },
-      { id: "queue", label: "Kafka Event Bus" },
-      { id: "db", label: "PostgreSQL" },
-      { id: "cdn", label: "CDN" },
-      { id: "search", label: "Search Index" }
-    ],
-    zones: [
-      { id: "entry", title: "User entrypoint", note: "Where the request begins from the user's perspective." },
-      { id: "routing", title: "Routing boundary", note: "Receives and routes external API traffic." },
-      { id: "identity", title: "Identity / auth", note: "Verifies who is allowed to act." },
-      { id: "core", title: "Domain logic", note: "Owns the synchronous transactional behavior." },
-      { id: "reads", title: "Hot read acceleration", note: "Speeds up repeated reads without becoming source of truth." },
-      { id: "events", title: "Async fan-out", note: "Decouples downstream processing and integrations." },
-      { id: "storage", title: "System of record", note: "Durable transactional storage." }
-    ],
-    correct: {
-      entry: "client",
-      routing: "gateway",
-      identity: "auth",
-      core: "service",
-      reads: "cache",
-      events: "queue",
-      storage: "db"
-    }
-  },
-  relationships: {
-    intro: "Match each business statement to the right relational shape. Think in business truth first, then in foreign keys and join tables.",
-    instructions: [
-      "If both sides can have many records, call out the join table.",
-      "Use one-to-one only when the rule is genuinely strict.",
-      "Read the prompt left to right before choosing the label."
-    ],
-    tip: "A good explanation sounds like: one user can create many orders, but each order belongs to exactly one user.",
-    pool: [
-      { id: "u_orders", label: "1 user -> many orders" },
-      { id: "o_payment", label: "1 order -> 1 payment" },
-      { id: "o_products", label: "orders <-> products via join table" },
-      { id: "c_products", label: "1 category -> many products" },
-      { id: "u_profile", label: "1 user -> 1 profile" }
-    ],
-    zones: [
-      { id: "userOrders", title: "Users and Orders", note: "A customer can place multiple purchases over time." },
-      { id: "orderPayment", title: "Orders and Payments", note: "Each completed order stores a single payment record." },
-      { id: "orderProducts", title: "Orders and Products", note: "An order can contain several products and products appear in many orders." },
-      { id: "categoryProducts", title: "Categories and Products", note: "A category groups multiple products in the catalog." }
-    ],
-    correct: {
-      userOrders: "u_orders",
-      orderPayment: "o_payment",
-      orderProducts: "o_products",
-      categoryProducts: "c_products"
-    }
-  }
-};
 
 function updateProgress() {
   const pct = Math.round(viewed.size / concepts.length * 100);
@@ -775,197 +461,6 @@ function renderGrid() {
     </div>`).join('');
 }
 
-function getAvailableGameItems(gameKey) {
-  const def = gameDefinitions[gameKey];
-  const used = new Set(Object.values(gameState[gameKey].placed));
-  return def.pool.filter(item => !used.has(item.id));
-}
-
-function getGameItem(gameKey, itemId) {
-  return gameDefinitions[gameKey].pool.find(item => item.id === itemId);
-}
-
-function findZoneForItem(gameKey, itemId) {
-  return Object.keys(gameState[gameKey].placed).find(zoneId => gameState[gameKey].placed[zoneId] === itemId);
-}
-
-function renderGameToken(gameKey, item, placed = false) {
-  const selected = gameState[gameKey].selected === item.id ? ' selected' : '';
-  const placedClass = placed ? ' placed' : '';
-  const clickHandler = placed
-    ? `clearGameZone('${gameKey}','${findZoneForItem(gameKey, item.id)}')`
-    : `selectGameItem('${gameKey}','${item.id}')`;
-
-  return `<button type="button" class="game-token${selected}${placedClass}" draggable="${placed ? 'false' : 'true'}"
-      onclick="${clickHandler}"
-      ${placed ? '' : `ondragstart="startGameDrag(event,'${gameKey}','${item.id}')"`}>
-      ${item.label}
-    </button>`;
-}
-
-function renderGameZone(gameKey, zone) {
-  const state = gameState[gameKey];
-  const itemId = state.placed[zone.id];
-  const item = itemId ? getGameItem(gameKey, itemId) : null;
-  let zoneClass = 'game-zone';
-
-  if (state.status && state.status.results) {
-    zoneClass += state.status.results[zone.id] ? ' correct' : ' incorrect';
-  }
-
-  return `<div class="${zoneClass}" onclick="placeGameItem('${gameKey}','${zone.id}')"
-      ondragover="allowGameDrop(event)"
-      ondragenter="setGameDragOver(event, true)"
-      ondragleave="setGameDragOver(event, false)"
-      ondrop="dropGameItem(event,'${gameKey}','${zone.id}')">
-      <div class="game-zone-head">
-        <div class="game-zone-title">${zone.title}</div>
-      </div>
-      <div class="game-zone-note">${zone.note}</div>
-      <div class="game-slot">
-        ${item ? renderGameToken(gameKey, item, true) : '<span class="game-empty">drop or tap a card here</span>'}
-      </div>
-    </div>`;
-}
-
-function renderGameDetail(c) {
-  const def = gameDefinitions[c.game];
-  const status = gameState[c.game].status;
-  const statusClass = status ? ` ${status.type}` : '';
-  const statusText = status ? status.message : 'Place the cards, then check your answer.';
-
-  return `
-    <div class="detail-header">
-      <div class="detail-num">${c.num}</div>
-      <div class="detail-title">${c.title}</div>
-    </div>
-    <div class="detail-diagram" style="border-top-color:${c.accent}">${c.diagramSvg}</div>
-    <div class="game-shell" style="--accent:${c.accent}">
-      <div class="game-stage">
-        <div class="game-kicker">Interactive drill</div>
-        <div class="game-prompt">${def.intro}</div>
-        <div class="game-zones">${def.zones.map(zone => renderGameZone(c.game, zone)).join('')}</div>
-        <div class="game-kicker" style="margin-top:18px">Draggable options</div>
-        <div class="game-bank">${getAvailableGameItems(c.game).map(item => renderGameToken(c.game, item)).join('')}</div>
-        <div class="game-actions">
-          <button type="button" class="game-btn primary" onclick="checkGame('${c.game}')">Check answer</button>
-          <button type="button" class="game-btn" onclick="resetGame('${c.game}')">Reset board</button>
-        </div>
-        <div class="game-status${statusClass}">${statusText}</div>
-      </div>
-      <div class="game-side">
-        <div class="game-kicker">What to say out loud</div>
-        <ul>${def.instructions.map(item => `<li>${item}</li>`).join('')}</ul>
-        <div class="game-tip">${def.tip}</div>
-      </div>
-    </div>`;
-}
-
-function getOpenGameConcept() {
-  const title = document.querySelector('.detail-title')?.textContent;
-  return concepts.find(c => c.game && c.title === title);
-}
-
-function refreshOpenGame() {
-  const concept = getOpenGameConcept();
-  if (!concept) return;
-  document.getElementById('detail-content').innerHTML = renderGameDetail(concept);
-}
-
-function selectGameItem(gameKey, itemId) {
-  gameState[gameKey].selected = gameState[gameKey].selected === itemId ? null : itemId;
-  refreshOpenGame();
-}
-
-function placeGameItem(gameKey, zoneId, forcedItemId) {
-  const state = gameState[gameKey];
-  const itemId = forcedItemId || state.selected;
-  if (!itemId) return;
-
-  const previousZone = findZoneForItem(gameKey, itemId);
-  if (previousZone) delete state.placed[previousZone];
-  delete state.placed[zoneId];
-
-  state.placed[zoneId] = itemId;
-  state.selected = null;
-  state.status = null;
-  refreshOpenGame();
-}
-
-function clearGameZone(gameKey, zoneId) {
-  delete gameState[gameKey].placed[zoneId];
-  gameState[gameKey].status = null;
-  refreshOpenGame();
-}
-
-function resetGame(gameKey) {
-  gameState[gameKey] = { selected: null, placed: {}, status: null };
-  refreshOpenGame();
-}
-
-function allowGameDrop(event) {
-  event.preventDefault();
-}
-
-function setGameDragOver(event, active) {
-  event.currentTarget.classList.toggle('drag-over', active);
-}
-
-function startGameDrag(event, gameKey, itemId) {
-  event.dataTransfer.setData('text/plain', JSON.stringify({ gameKey, itemId }));
-}
-
-function dropGameItem(event, gameKey, zoneId) {
-  event.preventDefault();
-  setGameDragOver(event, false);
-  const raw = event.dataTransfer.getData('text/plain');
-  if (!raw) return;
-
-  try {
-    const payload = JSON.parse(raw);
-    if (payload.gameKey !== gameKey) return;
-    placeGameItem(gameKey, zoneId, payload.itemId);
-  } catch (error) {
-    console.error('Invalid drag payload', error);
-  }
-}
-
-function checkGame(gameKey) {
-  const def = gameDefinitions[gameKey];
-  const state = gameState[gameKey];
-  const results = {};
-  let placedCount = 0;
-  let correctCount = 0;
-
-  def.zones.forEach(zone => {
-    const isCorrect = state.placed[zone.id] === def.correct[zone.id];
-    if (state.placed[zone.id]) placedCount += 1;
-    results[zone.id] = isCorrect;
-    if (isCorrect) correctCount += 1;
-  });
-
-  if (placedCount < def.zones.length) {
-    state.status = {
-      type: 'error',
-      message: `You still have ${def.zones.length - placedCount} open slot${def.zones.length - placedCount === 1 ? '' : 's'}. Fill every zone before checking again.`
-    };
-  } else if (correctCount === def.zones.length) {
-    state.status = {
-      type: 'success',
-      results,
-      message: `Nice. You matched all ${def.zones.length} slots correctly. This is a strong interview answer to talk through.`
-    };
-  } else {
-    state.status = {
-      type: 'error',
-      results,
-      message: `Close. ${correctCount} of ${def.zones.length} placements are correct. Red zones need another pass.`
-    };
-  }
-
-  refreshOpenGame();
-}
-
 function openDetail(id) {
   const c = concepts[id];
   viewed.add(id);
@@ -984,7 +479,7 @@ function openDetail(id) {
   `;
   if (!accentStyle.parentNode) document.head.appendChild(accentStyle);
 
-  document.getElementById('detail-content').innerHTML = c.game ? renderGameDetail(c) : `
+  document.getElementById('detail-content').innerHTML = `
     <div class="detail-header">
       <div class="detail-num">${c.num}</div>
       <div class="detail-title">${c.title}</div>
